@@ -9,7 +9,6 @@ export const useRepositoryAnalysis = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState<string>('');
   const [progress, setProgress] = useState(0);
-  const [repositoryId, setRepositoryId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -22,7 +21,6 @@ export const useRepositoryAnalysis = () => {
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (match) {
       let repoName = match[2];
-      // Strip .git suffix if present
       if (repoName.endsWith('.git')) {
         repoName = repoName.slice(0, -4);
       }
@@ -34,15 +32,13 @@ export const useRepositoryAnalysis = () => {
     return null;
   };
 
-  const simulateAnalysisProgress = (repoId: string) => {
+  const trackAnalysisProgress = () => {
     const steps = [
-      { message: "Connecting to GitHub...", duration: 1000 },
-      { message: "Fetching repository metadata...", duration: 2000 },
-      { message: "Analyzing code structure...", duration: 3000 },
-      { message: "Extracting functions...", duration: 2500 },
-      { message: "Running complexity analysis...", duration: 2000 },
-      { message: "Generating documentation...", duration: 2000 },
-      { message: "Creating Q&A content...", duration: 1500 },
+      { message: "Connecting to GitHub...", duration: 2000 },
+      { message: "Fetching repository metadata...", duration: 3000 },
+      { message: "Analyzing code structure...", duration: 4000 },
+      { message: "Generating documentation...", duration: 3000 },
+      { message: "Creating Q&A content...", duration: 2000 },
       { message: "Finalizing analysis...", duration: 1000 }
     ];
 
@@ -57,21 +53,17 @@ export const useRepositoryAnalysis = () => {
         const targetProgress = (currentStep + 1) * stepProgress;
         
         const progressInterval = setInterval(() => {
-          currentProgress += 3;
+          currentProgress += 2;
           if (currentProgress >= targetProgress) {
             clearInterval(progressInterval);
             currentStep++;
-            setTimeout(runStep, 200);
+            setTimeout(runStep, 300);
           }
           setProgress(Math.min(currentProgress, targetProgress));
-        }, 100);
-
+        }, 150);
       } else {
         setAnalysisStatus("Analysis complete!");
         setProgress(100);
-        setTimeout(() => {
-          navigate(`/analysis/${repoId}`);
-        }, 1000);
       }
     };
 
@@ -79,7 +71,7 @@ export const useRepositoryAnalysis = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!validateGithubUrl(githubUrl)) {
+    if (!githubUrl || !validateGithubUrl(githubUrl)) {
       toast({
         title: "Invalid URL",
         description: "Please enter a valid GitHub repository URL",
@@ -103,79 +95,56 @@ export const useRepositoryAnalysis = () => {
     setAnalysisStatus("Starting analysis...");
 
     try {
-      // Check if repository already exists
+      // Check if repository already exists and is completed
       const { data: existingRepo } = await supabase
         .from('repositories')
         .select('*')
         .eq('github_url', githubUrl)
         .single();
 
-      if (existingRepo) {
-        setRepositoryId(existingRepo.id);
-        if (existingRepo.status === 'completed') {
-          toast({
-            title: "Repository Already Analyzed",
-            description: "This repository has already been analyzed. Redirecting to results...",
-          });
-          setTimeout(() => navigate(`/analysis/${existingRepo.id}`), 1000);
-          return;
-        }
+      if (existingRepo && existingRepo.status === 'completed') {
+        toast({
+          title: "Repository Already Analyzed",
+          description: "Redirecting to analysis results...",
+        });
+        setTimeout(() => navigate(`/analysis/${existingRepo.id}`), 1000);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Start progress tracking
+      trackAnalysisProgress();
+
+      // Call the simplified scrape function that only needs githubUrl
+      const { data, error } = await supabase.functions.invoke('scrape-github-repo', {
+        body: { githubUrl }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setAnalysisStatus("Analysis complete!");
+        setProgress(100);
         
-        // If repository exists but analysis failed or is pending, restart the analysis
-        if (existingRepo.status === 'failed' || existingRepo.status === 'pending') {
-          // Start real analysis with existing repository
-          const { data, error } = await supabase.functions.invoke('scrape-github-repo', {
-            body: { githubUrl, repositoryId: existingRepo.id }
-          });
-
-          if (error) throw error;
-
-          if (data.success) {
-            // Start progress simulation while real analysis happens in background
-            simulateAnalysisProgress(existingRepo.id);
-          } else {
-            throw new Error(data.error || 'Analysis failed');
-          }
-        } else {
-          // Repository is currently being analyzed
-          simulateAnalysisProgress(existingRepo.id);
-        }
-      } else {
-        // Create new repository entry
-        const { data: newRepo, error } = await supabase
-          .from('repositories')
-          .insert({
-            github_url: githubUrl,
-            owner: repoInfo.owner,
-            name: repoInfo.name,
-            status: 'pending'
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        setRepositoryId(newRepo.id);
-
-        // Start real analysis
-        const { data, error: analysisError } = await supabase.functions.invoke('scrape-github-repo', {
-          body: { githubUrl, repositoryId: newRepo.id }
+        toast({
+          title: "Analysis Complete",
+          description: "Repository has been successfully analyzed!",
         });
 
-        if (analysisError) throw analysisError;
-
-        if (data.success) {
-          // Start progress simulation while real analysis happens in background
-          simulateAnalysisProgress(newRepo.id);
-        } else {
-          throw new Error(data.error || 'Analysis failed');
-        }
+        // Navigate to results
+        setTimeout(() => {
+          navigate(`/analysis/${data.repositoryId}`);
+          setIsAnalyzing(false);
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Analysis failed');
       }
 
     } catch (error) {
-      console.error('Error starting analysis:', error);
+      console.error('Error analyzing repository:', error);
       toast({
         title: "Analysis Failed",
-        description: error.message || "Failed to start repository analysis. Please try again.",
+        description: error.message || "Failed to analyze repository. Please try again.",
         variant: "destructive"
       });
       setIsAnalyzing(false);
