@@ -155,6 +155,39 @@ export type Database = {
           },
         ]
       }
+      compliance_rules: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          rule_config: Json | null
+          rule_name: string
+          severity: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_config?: Json | null
+          rule_name: string
+          severity?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_config?: Json | null
+          rule_name?: string
+          severity?: string
+        }
+        Relationships: []
+      }
       documentation_proposals: {
         Row: {
           ai_generated_content: string | null
@@ -267,6 +300,7 @@ export type Database = {
           rating_score: number | null
           repository_id: string
           source_chat_id: string | null
+          tags: string[] | null
           updated_at: string
           view_mode: string | null
         }
@@ -281,6 +315,7 @@ export type Database = {
           rating_score?: number | null
           repository_id: string
           source_chat_id?: string | null
+          tags?: string[] | null
           updated_at?: string
           view_mode?: string | null
         }
@@ -295,6 +330,7 @@ export type Database = {
           rating_score?: number | null
           repository_id?: string
           source_chat_id?: string | null
+          tags?: string[] | null
           updated_at?: string
           view_mode?: string | null
         }
@@ -391,6 +427,100 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      technical_debt_assessments: {
+        Row: {
+          assessment_data: Json | null
+          assessment_name: string
+          compliance_score: number
+          created_at: string | null
+          id: string
+          maintainability_score: number
+          overall_score: number
+          performance_score: number
+          repository_id: string
+          security_score: number
+          updated_at: string | null
+        }
+        Insert: {
+          assessment_data?: Json | null
+          assessment_name: string
+          compliance_score?: number
+          created_at?: string | null
+          id?: string
+          maintainability_score?: number
+          overall_score?: number
+          performance_score?: number
+          repository_id: string
+          security_score?: number
+          updated_at?: string | null
+        }
+        Update: {
+          assessment_data?: Json | null
+          assessment_name?: string
+          compliance_score?: number
+          created_at?: string | null
+          id?: string
+          maintainability_score?: number
+          overall_score?: number
+          performance_score?: number
+          repository_id?: string
+          security_score?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_debt_assessments_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_requirements: {
+        Row: {
+          compliance_notes: string | null
+          created_at: string | null
+          current_version: string | null
+          id: string
+          repository_id: string
+          required_version: string | null
+          status: string
+          tool_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          compliance_notes?: string | null
+          created_at?: string | null
+          current_version?: string | null
+          id?: string
+          repository_id: string
+          required_version?: string | null
+          status?: string
+          tool_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          compliance_notes?: string | null
+          created_at?: string | null
+          current_version?: string | null
+          id?: string
+          repository_id?: string
+          required_version?: string | null
+          status?: string
+          tool_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_requirements_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

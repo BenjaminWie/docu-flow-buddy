@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Github, ArrowLeft, MessageSquare, FileText, Star, GitFork } from "lucide-react";
+import { Github, ArrowLeft, MessageSquare, FileText, Star, GitFork, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ExplainCodeTab from "@/components/ExplainCodeTab";
 import DocumentCodeTab from "@/components/DocumentCodeTab";
+import TechnicalDebtTab from "@/components/TechnicalDebtTab";
 
 interface Repository {
   id: string;
@@ -34,30 +35,6 @@ interface FunctionAnalysis {
   usage_example: string;
   complexity_level: string;
   tags: string[];
-}
-
-interface ArchitectureDoc {
-  id: string;
-  section_type: string;
-  title: string;
-  content: string;
-  order_index: number;
-}
-
-interface BusinessExplanation {
-  id: string;
-  category: string;
-  question: string;
-  answer: string;
-  order_index: number;
-}
-
-interface CodeSection {
-  name: string;
-  path: string;
-  functions: FunctionAnalysis[];
-  complexity: 'simple' | 'moderate' | 'complex';
-  functionsCount: number;
 }
 
 const AnalysisResults = () => {
@@ -176,9 +153,9 @@ const AnalysisResults = () => {
           </Card>
         </div>
 
-        {/* Redesigned Analysis Tabs */}
+        {/* Analysis Tabs */}
         <Tabs defaultValue="explain" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="explain" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Explain Me The Code
@@ -186,6 +163,10 @@ const AnalysisResults = () => {
             <TabsTrigger value="document" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Help Me Document
+            </TabsTrigger>
+            <TabsTrigger value="debt" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Understand Technical Debt
             </TabsTrigger>
           </TabsList>
 
@@ -201,6 +182,10 @@ const AnalysisResults = () => {
               functions={functionAnalyses} 
               repository={repository}
             />
+          </TabsContent>
+
+          <TabsContent value="debt">
+            <TechnicalDebtTab repositoryId={repository.id} />
           </TabsContent>
         </Tabs>
       </div>

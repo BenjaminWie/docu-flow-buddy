@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +14,7 @@ interface QAData {
   rating_score: number | null;
   view_mode: string | null;
   function_name: string;
+  tags?: string[];
 }
 
 interface ArchitectureDoc {
@@ -106,7 +106,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question,
         answer,
         question_type: questionType,
-        view_mode: mode
+        view_mode: mode,
+        tags: ['new', 'chat-generated']
       });
 
     if (error) {
@@ -132,7 +133,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
   const filteredQA = qaData.filter(qa => {
     const matchesSearch = qa.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         qa.function_name.toLowerCase().includes(searchTerm.toLowerCase());
+                         qa.function_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         qa.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesMode = viewMode === 'dev' ? qa.view_mode !== 'business' : qa.view_mode === 'business';
     return matchesSearch && matchesMode;
   });
@@ -146,7 +148,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question_type: 'business',
         rating_score: 0,
         view_mode: 'business',
-        function_name: 'Business Logic'
+        function_name: 'Business Logic',
+        tags: ['business', 'documentation']
       }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
@@ -155,7 +158,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question_type: 'architecture',
         rating_score: 0,
         view_mode: 'dev',
-        function_name: 'Architecture'
+        function_name: 'Architecture',
+        tags: ['architecture', 'documentation']
       }));
 
   const allQAData = [...filteredQA, ...convertedDocs];
