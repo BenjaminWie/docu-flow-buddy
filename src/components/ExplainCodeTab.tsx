@@ -1,15 +1,11 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, Plus, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import DevBusinessToggle from "./DevBusinessToggle";
-import QAItem from "./QAItem";
-import ChatInterface from "./ChatInterface";
-import SeedDataButton from "./SeedDataButton";
+import ExplainCodeHeader from "./ExplainCodeHeader";
+import ExplainCodeControls from "./ExplainCodeControls";
+import QAList from "./QAList";
+import ChatSection from "./ChatSection";
 
 interface QAData {
   id: string;
@@ -166,103 +162,34 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Explain Me The Code
-          </CardTitle>
-          <p className="text-gray-600">
-            StackOverflow-like experience for understanding your codebase. Ask questions, get answers, and build knowledge.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {/* Add seed button for demonstration */}
-          {repositoryId === 'cbb24b3f-1590-40fa-91e5-b0ba660d2a6b' && (
-            <SeedDataButton />
-          )}
-          
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4 flex-1">
-              <DevBusinessToggle mode={viewMode} onModeChange={setViewMode} />
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Search questions and answers..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Button onClick={() => setShowChat(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Start Chat
-            </Button>
-          </div>
+      <ExplainCodeHeader repositoryId={repositoryId} />
+      
+      <div className="space-y-6">
+        <ExplainCodeControls
+          viewMode={viewMode}
+          onModeChange={setViewMode}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onStartChat={() => setShowChat(true)}
+        />
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Q&A List */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">
-                  {viewMode === 'dev' ? 'Developer' : 'Business'} Questions & Answers
-                </h3>
-                <Badge variant="outline">
-                  {allQAData.length} {allQAData.length === 1 ? 'item' : 'items'}
-                </Badge>
-              </div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <QAList
+            viewMode={viewMode}
+            qaData={allQAData}
+            onAnswerUpdate={fetchQAData}
+            onChatStart={handleChatStart}
+          />
 
-              {allQAData.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No questions available yet.</p>
-                      <p className="text-sm">Start a chat to create your first Q&A.</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {allQAData.map((qa) => (
-                    <QAItem
-                      key={qa.id}
-                      qa={qa}
-                      onAnswerUpdate={fetchQAData}
-                      onChatStart={handleChatStart}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Chat Interface */}
-            <div className="lg:col-span-1">
-              {showChat ? (
-                <ChatInterface
-                  repositoryId={repositoryId}
-                  initialQuestion={chatQuestion}
-                  onQuestionCreate={handleCreateQA}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p className="mb-4">Start a conversation to get help understanding the code</p>
-                      <Button onClick={() => setShowChat(true)}>
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Start Chat
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          <ChatSection
+            showChat={showChat}
+            repositoryId={repositoryId}
+            chatQuestion={chatQuestion}
+            onStartChat={() => setShowChat(true)}
+            onQuestionCreate={handleCreateQA}
+          />
+        </div>
+      </div>
     </div>
   );
 };
