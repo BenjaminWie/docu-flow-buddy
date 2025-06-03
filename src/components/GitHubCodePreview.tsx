@@ -3,8 +3,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Github, ExternalLink, Copy, Check } from "lucide-react";
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface GitHubCodePreviewProps {
   githubUrl: string;
@@ -102,6 +100,24 @@ const GitHubCodePreview = ({
     );
   }
 
+  const renderCodeWithLineNumbers = () => {
+    const lines = code.split('\n');
+    const displayStartLine = startLine || 1;
+    
+    return (
+      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono">
+        {lines.map((line, index) => (
+          <div key={index} className="flex">
+            <span className="text-gray-500 mr-4 select-none min-w-[3rem] text-right">
+              {displayStartLine + index}
+            </span>
+            <span className="flex-1">{line || ' '}</span>
+          </div>
+        ))}
+      </pre>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -129,19 +145,7 @@ const GitHubCodePreview = ({
       </CardHeader>
       <CardContent>
         <div className="relative">
-          <SyntaxHighlighter
-            language="typescript"
-            style={oneDark as any}
-            showLineNumbers
-            startingLineNumber={startLine || 1}
-            customStyle={{
-              margin: 0,
-              borderRadius: '0.5rem',
-              fontSize: '0.875rem',
-            }}
-          >
-            {code}
-          </SyntaxHighlighter>
+          {renderCodeWithLineNumbers()}
         </div>
       </CardContent>
     </Card>
