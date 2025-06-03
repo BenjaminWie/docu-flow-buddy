@@ -1,4 +1,3 @@
-
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -24,7 +23,6 @@ const MarkdownRenderer = ({ content, externalLinks = [] }: MarkdownRendererProps
                 language={match[1]}
                 PreTag="div"
                 className="rounded-md"
-                {...props}
               >
                 {String(children).replace(/\n$/, '')}
               </SyntaxHighlighter>
