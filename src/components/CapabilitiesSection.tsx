@@ -1,35 +1,35 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, Code, Users, Shield } from "lucide-react";
+import { Code, Building, Users, Shield } from "lucide-react";
 
 const CapabilitiesSection = () => {
   const capabilities = [
     {
-      icon: Building,
-      audience: "Architects",
-      capability: "Auto-fill 14 arc42 sections incl. Context, Solution Strategy, Quality Scenarios",
-      value: "70% faster doc cycles",
-      color: "from-purple-500 to-indigo-600"
-    },
-    {
       icon: Code,
-      audience: "Developers", 
-      capability: "Generates Javadoc/Python docstrings, sequence diagrams, unit-test skeletons",
-      value: "+40% feature velocity",
+      audience: "Developers",
+      capability: "Function-level documentation, complex logic explanation, and code relationship mapping",
+      value: "Instant code understanding",
       color: "from-blue-500 to-cyan-600"
     },
     {
+      icon: Building,
+      audience: "Architects", 
+      capability: "Automated arc42 documentation, compliance with company standards, and visual system overviews",
+      value: "Compliant architecture docs",
+      color: "from-purple-500 to-indigo-600"
+    },
+    {
       icon: Users,
-      audience: "Business Units",
-      capability: "Natural-language answers with source links",
-      value: "Ideas validated in hours",
+      audience: "Business Teams",
+      capability: "Natural language explanations, chat interface for questions, and business logic discovery",
+      value: "Business logic clarity",
       color: "from-green-500 to-emerald-600"
     },
     {
       icon: Shield,
-      audience: "Ops/Compliance",
-      capability: "EU AI Act & GDPR guardrails, audit logs",
-      value: "Reduced legal risk",
+      audience: "Teams",
+      capability: "Onboarding acceleration, knowledge preservation, and cross-team understanding",
+      value: "Knowledge democratization",
       color: "from-red-500 to-pink-600"
     }
   ];
@@ -39,10 +39,10 @@ const CapabilitiesSection = () => {
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Key <span className="text-blue-600">Capabilities</span>
+            Specialized <span className="text-blue-600">Capabilities</span>
           </h2>
           <p className="text-xl text-gray-600 leading-relaxed">
-            Tailored solutions for every role in your organization
+            Tailored AI assistance for every role working with your repository
           </p>
         </div>
 
