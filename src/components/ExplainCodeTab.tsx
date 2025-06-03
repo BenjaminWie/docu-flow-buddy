@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, Plus, FileText } from "lucide-react";
+import { Search, MessageSquare, Plus, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DevBusinessToggle from "./DevBusinessToggle";
-import QAItem from "./QAItem";
-import ChatInterface from "./ChatInterface";
+import EnhancedQAItem from "./EnhancedQAItem";
+import EnhancedChatInterface from "./EnhancedChatInterface";
 
 interface QAData {
   id: string;
@@ -19,6 +18,9 @@ interface QAData {
   rating_score: number | null;
   view_mode: string | null;
   function_name: string;
+  content_format?: string;
+  external_links?: Array<{ title: string; url: string }>;
+  analogy_content?: string;
 }
 
 interface ArchitectureDoc {
@@ -27,6 +29,8 @@ interface ArchitectureDoc {
   title: string;
   content: string;
   order_index: number;
+  content_format?: string;
+  external_links?: Array<{ title: string; url: string }>;
 }
 
 interface BusinessExplanation {
@@ -35,6 +39,9 @@ interface BusinessExplanation {
   question: string;
   answer: string;
   order_index: number;
+  analogy_content?: string;
+  content_format?: string;
+  external_links?: Array<{ title: string; url: string }>;
 }
 
 interface ExplainCodeTabProps {
@@ -44,13 +51,14 @@ interface ExplainCodeTabProps {
 
 const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps) => {
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<'dev' | 'business'>('dev');
+  const [viewMode, setViewMode] = useState<'dev' | 'business'>('business');
   const [searchTerm, setSearchTerm] = useState('');
   const [qaData, setQaData] = useState<QAData[]>([]);
   const [architectureDocs, setArchitectureDocs] = useState<ArchitectureDoc[]>([]);
   const [businessExplanations, setBusinessExplanations] = useState<BusinessExplanation[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [chatQuestion, setChatQuestion] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     fetchQAData();
@@ -110,7 +118,9 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question,
         answer,
         question_type: questionType,
-        view_mode: mode
+        view_mode: mode,
+        content_format: 'markdown',
+        external_links: []
       });
 
     if (error) {
@@ -143,15 +153,20 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
 
   // Convert architecture docs and business explanations to Q&A format for unified display
   const convertedDocs = viewMode === 'business' 
-    ? businessExplanations.map(exp => ({
-        id: `business-${exp.id}`,
-        question: exp.question || exp.category,
-        answer: exp.answer,
-        question_type: 'business',
-        rating_score: 0,
-        view_mode: 'business',
-        function_name: 'Business Logic'
-      }))
+    ? businessExplanations
+        .filter(exp => selectedCategory === 'all' || exp.category === selectedCategory)
+        .map(exp => ({
+          id: `business-${exp.id}`,
+          question: exp.question || exp.category,
+          answer: exp.answer,
+          question_type: 'business',
+          rating_score: 0,
+          view_mode: 'business',
+          function_name: 'Business Logic',
+          content_format: exp.content_format || 'markdown',
+          external_links: exp.external_links || [],
+          analogy_content: exp.analogy_content
+        }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
         question: doc.title,
@@ -159,10 +174,15 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question_type: 'architecture',
         rating_score: 0,
         view_mode: 'dev',
-        function_name: 'Architecture'
+        function_name: 'Architecture',
+        content_format: doc.content_format || 'markdown',
+        external_links: doc.external_links || []
       }));
 
   const allQAData = [...filteredQA, ...convertedDocs];
+
+  // Get unique categories for business mode
+  const categories = ['all', ...new Set(businessExplanations.map(exp => exp.category))];
 
   return (
     <div className="space-y-6">
@@ -170,10 +190,11 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
-            Explain Me The Code
+            OpenRewrite Knowledge Base
           </CardTitle>
           <p className="text-gray-600">
-            StackOverflow-like experience for understanding your codebase. Ask questions, get answers, and build knowledge.
+            Comprehensive documentation and Q&A for the OpenRewrite automated refactoring ecosystem.
+            Switch between technical documentation and business-friendly analogies.
           </p>
         </CardHeader>
         <CardContent>
@@ -189,6 +210,22 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
                   className="pl-10"
                 />
               </div>
+              {viewMode === 'business' && (
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="border rounded px-3 py-1 text-sm"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>
+                        {cat === 'all' ? 'All Categories' : cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <Button onClick={() => setShowChat(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -201,7 +238,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">
-                  {viewMode === 'dev' ? 'Developer' : 'Business'} Questions & Answers
+                  {viewMode === 'dev' ? 'Developer' : 'Business'} Knowledge
                 </h3>
                 <Badge variant="outline">
                   {allQAData.length} {allQAData.length === 1 ? 'item' : 'items'}
@@ -213,7 +250,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
                   <CardContent className="pt-6">
                     <div className="text-center py-8 text-gray-500">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No questions available yet.</p>
+                      <p>No content available yet.</p>
                       <p className="text-sm">Start a chat to create your first Q&A.</p>
                     </div>
                   </CardContent>
@@ -221,7 +258,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
               ) : (
                 <div className="space-y-4">
                   {allQAData.map((qa) => (
-                    <QAItem
+                    <EnhancedQAItem
                       key={qa.id}
                       qa={qa}
                       onAnswerUpdate={fetchQAData}
@@ -235,7 +272,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
             {/* Chat Interface */}
             <div className="lg:col-span-1">
               {showChat ? (
-                <ChatInterface
+                <EnhancedChatInterface
                   repositoryId={repositoryId}
                   initialQuestion={chatQuestion}
                   onQuestionCreate={handleCreateQA}
@@ -245,7 +282,14 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
                   <CardContent className="pt-6">
                     <div className="text-center py-8 text-gray-500">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p className="mb-4">Start a conversation to get help understanding the code</p>
+                      <p className="mb-4">Ask the OpenRewrite AI assistant about:</p>
+                      <ul className="text-sm text-left space-y-1 mb-6">
+                        <li>• How to set up your development environment</li>
+                        <li>• Creating custom recipes</li>
+                        <li>• Understanding the architecture</li>
+                        <li>• Business benefits and ROI</li>
+                        <li>• Safety and best practices</li>
+                      </ul>
                       <Button onClick={() => setShowChat(true)}>
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Start Chat
