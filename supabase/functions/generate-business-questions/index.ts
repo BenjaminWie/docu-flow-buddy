@@ -26,8 +26,50 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Create context-aware system prompt for business questions
-    const systemPrompt = `You are an expert business analyst and requirements engineer. Generate exactly 5 high-quality business questions for a GitHub repository.
+    // Check if this is the OpenRewrite repository
+    const isOpenRewrite = repoData.owner?.toLowerCase() === 'openrewrite' && repoData.name?.toLowerCase() === 'rewrite';
+
+    // Create specialized system prompt for OpenRewrite or general repositories
+    const systemPrompt = isOpenRewrite ? 
+      `You are an expert business analyst specializing in enterprise software development tools. Generate exactly 5 high-quality business questions for OpenRewrite, focusing on business value and ROI.
+
+Repository Context:
+- Name: ${repoData.name}
+- Owner: ${repoData.owner}
+- Description: ${repoData.description || 'Automated source code refactoring toolkit'}
+- Language: ${repoData.language || 'Java'}
+- Stars: ${repoData.stars || 0}
+- URL: ${githubUrl}
+
+Focus Areas for OpenRewrite Business Questions:
+1. ROI & Cost Savings - Quantifiable benefits of automated refactoring
+2. Risk Mitigation - How automation reduces migration and upgrade risks
+3. Developer Productivity - Impact on team efficiency and satisfaction
+4. Technical Debt Reduction - Business case for code modernization
+5. Compliance & Security - Meeting regulatory and security requirements
+
+Generate questions that would help:
+- CTOs understand the business case for automated refactoring
+- Engineering managers justify OpenRewrite adoption
+- Project managers plan migration timelines and budgets
+- Compliance teams understand security and audit benefits
+- Executives evaluate ROI and competitive advantages
+
+Return exactly 5 questions in this JSON format:
+{
+  "questions": [
+    {
+      "question": "What is the ROI and cost savings of using OpenRewrite for automated code modernization?",
+      "question_type": "benefits",
+      "priority": 1
+    },
+    // ... 4 more questions with types: business, workflow, compliance, requirements
+  ]
+}
+
+Focus on business value, not technical implementation. Use business-friendly language.`
+      :
+      `You are an expert business analyst and requirements engineer. Generate exactly 5 high-quality business questions for a GitHub repository.
 
 Repository Context:
 - Name: ${repoData.name}
@@ -75,7 +117,7 @@ Make questions focused on business value, not technical implementation.`;
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate 5 business questions for the ${repoData.name} repository.` }
+          { role: 'user', content: `Generate 5 specialized business questions for the ${repoData.name} repository.` }
         ],
         temperature: 0.7,
         max_tokens: 1000,
@@ -90,8 +132,14 @@ Make questions focused on business value, not technical implementation.`;
       questions = JSON.parse(content).questions;
     } catch (e) {
       console.error('Failed to parse AI response:', content);
-      // Fallback questions
-      questions = [
+      // Fallback questions specific to OpenRewrite or general business
+      questions = isOpenRewrite ? [
+        { question: `What is the ROI and cost savings of using OpenRewrite for automated code modernization?`, question_type: 'benefits', priority: 1 },
+        { question: `How does OpenRewrite reduce business risks during framework migrations and upgrades?`, question_type: 'business', priority: 2 },
+        { question: `What impact does OpenRewrite have on developer productivity and team satisfaction?`, question_type: 'workflow', priority: 3 },
+        { question: `How does automated refactoring help meet compliance and security requirements?`, question_type: 'compliance', priority: 4 },
+        { question: `What business requirements does OpenRewrite address for enterprise development teams?`, question_type: 'requirements', priority: 5 }
+      ] : [
         { question: `What are the main business benefits and key USPs of ${repoData.name}?`, question_type: 'benefits', priority: 1 },
         { question: `What business functionality does ${repoData.name} provide?`, question_type: 'business', priority: 2 },
         { question: `How does ${repoData.name} address core business requirements?`, question_type: 'requirements', priority: 3 },

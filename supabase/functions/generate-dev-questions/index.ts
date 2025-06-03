@@ -26,8 +26,50 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Create context-aware system prompt for developer questions
-    const systemPrompt = `You are an expert software architect and developer mentor. Generate exactly 5 high-quality developer questions for a GitHub repository.
+    // Check if this is the OpenRewrite repository
+    const isOpenRewrite = repoData.owner?.toLowerCase() === 'openrewrite' && repoData.name?.toLowerCase() === 'rewrite';
+
+    // Create specialized system prompt for OpenRewrite or general repositories
+    const systemPrompt = isOpenRewrite ? 
+      `You are an expert in OpenRewrite, a powerful automated refactoring toolkit for source code transformation. Generate exactly 5 high-quality developer questions for the OpenRewrite repository.
+
+Repository Context:
+- Name: ${repoData.name}
+- Owner: ${repoData.owner}
+- Description: ${repoData.description || 'Automated source code refactoring'}
+- Language: ${repoData.language || 'Java'}
+- Stars: ${repoData.stars || 0}
+- URL: ${githubUrl}
+
+Focus Areas for OpenRewrite Developer Questions:
+1. Recipe Development - How to create custom transformation recipes
+2. AST Manipulation - Working with Abstract Syntax Trees and visitors
+3. Build Tool Integration - Maven/Gradle plugin usage and configuration
+4. Testing Strategies - Testing recipes and transformations effectively
+5. Advanced Patterns - Visitor patterns, execution contexts, and recipe composition
+
+Generate questions that would help:
+- Java developers understand AST-based transformations
+- DevOps teams integrate OpenRewrite into CI/CD pipelines
+- Senior developers create custom recipes for code modernization
+- Teams adopt OpenRewrite for framework migrations
+- Architects understand the transformation engine design
+
+Return exactly 5 questions in this JSON format:
+{
+  "questions": [
+    {
+      "question": "How do I create a custom OpenRewrite recipe to transform specific Java patterns?",
+      "question_type": "development",
+      "priority": 1
+    },
+    // ... 4 more questions with types: setup, architecture, testing, deployment
+  ]
+}
+
+Make questions specific to OpenRewrite's recipe development, AST manipulation, and code transformation capabilities.`
+      :
+      `You are an expert software architect and developer mentor. Generate exactly 5 high-quality developer questions for a GitHub repository.
 
 Repository Context:
 - Name: ${repoData.name}
@@ -74,7 +116,7 @@ Make questions specific to this repository's technology stack and apparent compl
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Generate 5 developer questions for the ${repoData.name} repository.` }
+          { role: 'user', content: `Generate 5 specialized developer questions for the ${repoData.name} repository.` }
         ],
         temperature: 0.7,
         max_tokens: 1000,
@@ -89,8 +131,14 @@ Make questions specific to this repository's technology stack and apparent compl
       questions = JSON.parse(content).questions;
     } catch (e) {
       console.error('Failed to parse AI response:', content);
-      // Fallback questions
-      questions = [
+      // Fallback questions specific to OpenRewrite or general development
+      questions = isOpenRewrite ? [
+        { question: `How do I create a custom OpenRewrite recipe to transform specific Java patterns?`, question_type: 'development', priority: 1 },
+        { question: `How do I set up OpenRewrite in my Maven or Gradle build?`, question_type: 'setup', priority: 2 },
+        { question: `What is the visitor pattern in OpenRewrite and how do I use it for AST traversal?`, question_type: 'architecture', priority: 3 },
+        { question: `How do I test my OpenRewrite recipes to ensure they work correctly?`, question_type: 'testing', priority: 4 },
+        { question: `How can I integrate OpenRewrite into my CI/CD pipeline for automated refactoring?`, question_type: 'deployment', priority: 5 }
+      ] : [
         { question: `How do I set up the development environment for ${repoData.name}?`, question_type: 'setup', priority: 1 },
         { question: `What is the overall architecture of ${repoData.name}?`, question_type: 'architecture', priority: 2 },
         { question: `What are the most critical functions in ${repoData.name} that I should understand?`, question_type: 'development', priority: 3 },
