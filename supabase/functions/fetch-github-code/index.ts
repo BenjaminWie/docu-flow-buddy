@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { githubUrl, filePath, functionName } = await req.json()
+    const { githubUrl, filePath, functionName, startLine, endLine } = await req.json()
     
     // Parse GitHub URL to get owner and repo
     const urlParts = githubUrl.replace('https://github.com/', '').split('/')
@@ -42,17 +42,25 @@ serve(async (req) => {
     // Decode base64 content
     const fileContent = atob(data.content)
     
-    // Try to extract the specific function
+    // Try to extract the specific function or line range
     let functionCode = fileContent
-    let startLine = 1
+    let actualStartLine = 1
+    let actualEndLine = fileContent.split('\n').length
     
-    if (functionName) {
+    if (startLine && endLine) {
+      // Use provided line range
+      const lines = fileContent.split('\n')
+      functionCode = lines.slice(startLine - 1, endLine).join('\n')
+      actualStartLine = startLine
+      actualEndLine = endLine
+    } else if (functionName) {
+      // Try to find the function
       const lines = fileContent.split('\n')
       const functionRegex = new RegExp(`(function\\s+${functionName}|const\\s+${functionName}\\s*=|${functionName}\\s*[:=]\\s*function|${functionName}\\s*[:=]\\s*\\(.*\\)\\s*=>)`, 'i')
       
       for (let i = 0; i < lines.length; i++) {
         if (functionRegex.test(lines[i])) {
-          startLine = i + 1
+          actualStartLine = i + 1
           
           // Find the end of the function (basic heuristic)
           let braceCount = 0
@@ -76,17 +84,29 @@ serve(async (req) => {
             if (foundOpenBrace && braceCount === 0) break
           }
           
+          actualEndLine = endLine + 1
           functionCode = lines.slice(i, endLine + 1).join('\n')
           break
         }
       }
     }
 
+    // Generate GitHub URL with line anchors
+    let githubUrlWithLines = `${githubUrl}/blob/main/${filePath}`
+    if (actualStartLine > 1 || actualEndLine < fileContent.split('\n').length) {
+      if (actualStartLine === actualEndLine) {
+        githubUrlWithLines += `#L${actualStartLine}`
+      } else {
+        githubUrlWithLines += `#L${actualStartLine}-L${actualEndLine}`
+      }
+    }
+
     return new Response(JSON.stringify({
       content: functionCode,
       fullContent: fileContent,
-      startLine,
-      githubUrl: `${githubUrl}/blob/main/${filePath}`,
+      startLine: actualStartLine,
+      endLine: actualEndLine,
+      githubUrl: githubUrlWithLines,
       language: getLanguageFromPath(filePath)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
