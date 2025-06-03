@@ -35,11 +35,12 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
       <ReactMarkdown
         components={{
           // Enhanced code blocks with syntax highlighting and copy button
-          code({ node, inline, className, children, ...props }) {
+          code(props) {
+            const { children, className, ...rest } = props;
             const match = /language-(\w+)/.exec(className || '');
             const codeContent = String(children).replace(/\n$/, '');
             
-            return !inline && match ? (
+            return match ? (
               <div className="relative">
                 <SyntaxHighlighter
                   style={oneDark}
@@ -51,7 +52,7 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
                     padding: '1rem',
                     fontSize: '0.875rem',
                   }}
-                  {...props}
+                  {...rest}
                 >
                   {codeContent}
                 </SyntaxHighlighter>
@@ -60,7 +61,7 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
             ) : (
               <code
                 className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono"
-                {...props}
+                {...rest}
               >
                 {children}
               </code>

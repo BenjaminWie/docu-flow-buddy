@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -160,7 +159,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         function_name: 'Business Logic',
         tags: ['business', 'documentation'],
         is_approved: true
-      }))
+      } as QAData))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
         question: doc.title,
@@ -170,7 +169,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         function_name: 'Architecture',
         tags: ['architecture', 'documentation'],
         is_approved: true
-      }));
+      } as QAData));
 
   const allQAData = [...filteredQA, ...convertedDocs];
 
