@@ -9,7 +9,180 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      architecture_docs: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          order_index: number
+          repository_id: string
+          section_type: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          repository_id: string
+          section_type: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          repository_id?: string
+          section_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architecture_docs_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_explanations: {
+        Row: {
+          answer: string
+          category: string
+          created_at: string
+          id: string
+          order_index: number
+          question: string | null
+          repository_id: string
+        }
+        Insert: {
+          answer: string
+          category: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question?: string | null
+          repository_id: string
+        }
+        Update: {
+          answer?: string
+          category?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question?: string | null
+          repository_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_explanations_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_analyses: {
+        Row: {
+          complexity_level: string | null
+          created_at: string
+          description: string
+          file_path: string
+          function_name: string
+          function_signature: string | null
+          id: string
+          parameters: Json | null
+          repository_id: string
+          return_value: string | null
+          tags: string[] | null
+          usage_example: string | null
+        }
+        Insert: {
+          complexity_level?: string | null
+          created_at?: string
+          description: string
+          file_path: string
+          function_name: string
+          function_signature?: string | null
+          id?: string
+          parameters?: Json | null
+          repository_id: string
+          return_value?: string | null
+          tags?: string[] | null
+          usage_example?: string | null
+        }
+        Update: {
+          complexity_level?: string | null
+          created_at?: string
+          description?: string
+          file_path?: string
+          function_name?: string
+          function_signature?: string | null
+          id?: string
+          parameters?: Json | null
+          repository_id?: string
+          return_value?: string | null
+          tags?: string[] | null
+          usage_example?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_analyses_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      repositories: {
+        Row: {
+          analyzed_at: string | null
+          created_at: string
+          description: string | null
+          forks: number | null
+          github_url: string
+          id: string
+          language: string | null
+          name: string
+          owner: string
+          stars: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          analyzed_at?: string | null
+          created_at?: string
+          description?: string | null
+          forks?: number | null
+          github_url: string
+          id?: string
+          language?: string | null
+          name: string
+          owner: string
+          stars?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          analyzed_at?: string | null
+          created_at?: string
+          description?: string | null
+          forks?: number | null
+          github_url?: string
+          id?: string
+          language?: string | null
+          name?: string
+          owner?: string
+          stars?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

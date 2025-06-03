@@ -3,14 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Github, Zap, FileText, Bot } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const HeroSection = () => {
   const [githubUrl, setGithubUrl] = useState("");
+  const navigate = useNavigate();
 
   const handleAnalyze = () => {
     if (githubUrl) {
-      // TODO: Implement analysis logic
-      console.log("Analyzing repository:", githubUrl);
+      navigate('/analyze', { state: { githubUrl } });
+    } else {
+      navigate('/analyze');
+    }
+  };
+
+  const handleSampleAnalysis = async () => {
+    try {
+      const { data: copilotRepo } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('github_url', 'https://github.com/CopilotKit/CopilotKit')
+        .single();
+
+      if (copilotRepo) {
+        navigate(`/analysis/${copilotRepo.id}`);
+      }
+    } catch (error) {
+      console.error('Error fetching sample analysis:', error);
+      navigate('/analyze');
     }
   };
 
@@ -81,6 +102,7 @@ const HeroSection = () => {
             <Button 
               variant="outline" 
               size="lg"
+              onClick={handleSampleAnalysis}
               className="border-gray-400 text-gray-300 hover:bg-gray-800 px-8 py-4 text-lg"
             >
               See Sample Analysis
