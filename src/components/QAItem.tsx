@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,50 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
   const [isEditing, setIsEditing] = useState(!qa.answer);
   const [answerText, setAnswerText] = useState(qa.answer || '');
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [currentScore, setCurrentScore] = useState(qa.rating_score || 0);
+
+  useEffect(() => {
+    checkUserRating();
+    fetchCurrentScore();
+  }, [qa.id]);
+
+  const checkUserRating = async () => {
+    const userSession = localStorage.getItem('userSession') || 
+      (() => {
+        const session = Math.random().toString(36).substring(7);
+        localStorage.setItem('userSession', session);
+        return session;
+      })();
+
+    const { data } = await supabase
+      .from('qa_ratings')
+      .select('rating')
+      .eq('qa_id', qa.id)
+      .eq('user_session', userSession)
+      .single();
+
+    if (data) {
+      setUserRating(data.rating);
+    }
+  };
+
+  const fetchCurrentScore = async () => {
+    const { data } = await supabase
+      .from('qa_ratings')
+      .select('rating')
+      .eq('qa_id', qa.id);
+
+    if (data) {
+      const totalScore = data.reduce((sum, rating) => sum + rating.rating, 0);
+      setCurrentScore(totalScore);
+      
+      // Update the database with the calculated score
+      await supabase
+        .from('function_qa')
+        .update({ rating_score: totalScore })
+        .eq('id', qa.id);
+    }
+  };
 
   const handleSaveAnswer = async () => {
     if (!answerText.trim()) return;
@@ -59,6 +103,25 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
         return session;
       })();
 
+    // Remove existing rating if same rating is clicked
+    if (userRating === rating) {
+      const { error } = await supabase
+        .from('qa_ratings')
+        .delete()
+        .eq('qa_id', qa.id)
+        .eq('user_session', userSession);
+
+      if (!error) {
+        setUserRating(null);
+        await fetchCurrentScore();
+        toast({
+          title: "Success",
+          description: "Rating removed",
+        });
+      }
+      return;
+    }
+
     const { error } = await supabase
       .from('qa_ratings')
       .upsert({
@@ -75,6 +138,7 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
       });
     } else {
       setUserRating(rating);
+      await fetchCurrentScore();
       onAnswerUpdate();
       toast({
         title: "Success",
@@ -96,21 +160,21 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
               <h4 className="font-semibold text-lg mb-2">{qa.question}</h4>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
+              <div className="flex flex-col items-center">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRating(1)}
-                  className={userRating === 1 ? 'text-green-600' : ''}
+                  className={userRating === 1 ? 'text-green-600 bg-green-50' : 'hover:text-green-600'}
                 >
                   <ChevronUp className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-medium">{qa.rating_score || 0}</span>
+                <span className="text-sm font-medium py-1">{currentScore}</span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRating(-1)}
-                  className={userRating === -1 ? 'text-red-600' : ''}
+                  className={userRating === -1 ? 'text-red-600 bg-red-50' : 'hover:text-red-600'}
                 >
                   <ChevronDown className="w-4 h-4" />
                 </Button>
