@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, FileText } from "lucide-react";
 import FunctionOverview from "./FunctionOverview";
 import FunctionDetail from "./FunctionDetail";
-
 interface FunctionAnalysis {
   id: string;
   file_path: string;
@@ -17,63 +15,38 @@ interface FunctionAnalysis {
   complexity_level: string;
   tags: string[];
 }
-
 interface Repository {
   id: string;
   github_url: string;
   owner: string;
   name: string;
 }
-
 interface DocumentCodeTabProps {
   functions: FunctionAnalysis[];
   repository: Repository;
 }
-
-const DocumentCodeTab = ({ functions, repository }: DocumentCodeTabProps) => {
+const DocumentCodeTab = ({
+  functions,
+  repository
+}: DocumentCodeTabProps) => {
   const [selectedFunction, setSelectedFunction] = useState<FunctionAnalysis | null>(null);
   const [view, setView] = useState<'overview' | 'function'>('overview');
-
   const handleFunctionSelect = (functionAnalysis: FunctionAnalysis) => {
     setSelectedFunction(functionAnalysis);
     setView('function');
   };
-
   const handleBackToOverview = () => {
     setSelectedFunction(null);
     setView('overview');
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Help Me Document
-          </CardTitle>
-          <p className="text-gray-600">
-            AI-powered documentation assistant for your functions. Generate tests, documentation, and understand business logic.
-          </p>
-        </CardHeader>
+        
       </Card>
 
       <div className="space-y-6">
-        {view === 'overview' ? (
-          <FunctionOverview 
-            functions={functions} 
-            onFunctionSelect={handleFunctionSelect}
-          />
-        ) : selectedFunction && repository ? (
-          <FunctionDetail 
-            functionData={selectedFunction}
-            repository={repository}
-            onBack={handleBackToOverview}
-          />
-        ) : null}
+        {view === 'overview' ? <FunctionOverview functions={functions} onFunctionSelect={handleFunctionSelect} /> : selectedFunction && repository ? <FunctionDetail functionData={selectedFunction} repository={repository} onBack={handleBackToOverview} /> : null}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default DocumentCodeTab;
