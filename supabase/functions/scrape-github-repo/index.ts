@@ -1,256 +1,266 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+// Helper function to clean GitHub URLs
+const cleanGitHubUrl = (url) => {
+  // Strip .git suffix from the URL if present
+  if (url.endsWith('.git')) {
+    url = url.slice(0, -4);
+  }
+  // Remove trailing slash if present
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  return url;
+};
+
+// Helper function to extract owner and repo from GitHub URL
+const extractRepoInfo = (url) => {
+  const cleanUrl = cleanGitHubUrl(url);
+  const match = cleanUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+  if (match) {
+    return {
+      owner: match[1],
+      repo: match[2]
+    };
+  }
+  return null;
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { githubUrl, repositoryId } = await req.json()
-    console.log('Starting analysis for:', githubUrl, 'Repository ID:', repositoryId)
+    const { githubUrl, repositoryId } = await req.json();
     
-    // Extract owner and repo from GitHub URL and strip .git suffix
-    const match = githubUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/)
-    if (!match) {
-      throw new Error('Invalid GitHub URL format')
+    if (!githubUrl || !repositoryId) {
+      throw new Error('Missing githubUrl or repositoryId');
     }
-    
-    const owner = match[1]
-    let repo = match[2]
-    
-    // Strip .git suffix if present
-    if (repo.endsWith('.git')) {
-      repo = repo.slice(0, -4)
-    }
-    
-    console.log('Parsed owner:', owner, 'repo:', repo)
-    
-    // Initialize Supabase client
+
+    console.log(`Starting analysis for ${githubUrl}, repository ID: ${repositoryId}`);
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-    
-    // Update status to analyzing
+    );
+
+    // Clean GitHub URL and extract repository info
+    const cleanedUrl = cleanGitHubUrl(githubUrl);
+    const repoInfo = extractRepoInfo(cleanedUrl);
+
+    if (!repoInfo) {
+      throw new Error('Invalid GitHub repository URL');
+    }
+
+    console.log(`Extracted repo info for ${repoInfo.owner}/${repoInfo.repo}`);
+
+    // Update repository status to "analyzing"
     await supabase
       .from('repositories')
       .update({ status: 'analyzing' })
-      .eq('id', repositoryId)
-    
-    // Fetch repository metadata from GitHub API
-    const githubResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'Repository-Analyzer/1.0'
-      }
-    })
-    
-    if (!githubResponse.ok) {
-      console.error('GitHub API error:', githubResponse.status, githubResponse.statusText)
-      if (githubResponse.status === 404) {
-        throw new Error('Repository not found')
-      } else if (githubResponse.status === 403) {
-        throw new Error('Repository is private or rate limit exceeded')
-      } else {
-        throw new Error(`GitHub API error: ${githubResponse.statusText}`)
-      }
+      .eq('id', repositoryId);
+
+    // Fetch GitHub repository metadata
+    const githubApiUrl = `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}`;
+    const headers = {};
+
+    // Use GitHub token if available for higher rate limits
+    const githubToken = Deno.env.get('GITHUB_TOKEN');
+    if (githubToken) {
+      headers['Authorization'] = `token ${githubToken}`;
     }
-    
-    const repoData = await githubResponse.json()
-    console.log('Repository data fetched successfully')
-    
-    // Extract relevant metadata
-    const metadata = {
-      owner: repoData.owner.login,
-      name: repoData.name,
-      description: repoData.description || 'No description provided',
-      language: repoData.language || 'Unknown',
-      stars: repoData.stargazers_count || 0,
-      forks: repoData.forks_count || 0,
-      topics: repoData.topics || [],
-      default_branch: repoData.default_branch || 'main',
-      created_at: repoData.created_at,
-      updated_at: repoData.updated_at,
-      is_private: repoData.private,
-      is_fork: repoData.fork,
-      license: repoData.license?.name || null,
-      size: repoData.size || 0
+
+    const response = await fetch(githubApiUrl, { headers });
+    const repoData = await response.json();
+
+    if (repoData.message === 'Not Found' || response.status === 404) {
+      throw new Error(`Repository not found: ${githubUrl}`);
     }
-    
-    // Update repository with metadata
-    const { error: updateError } = await supabase
+
+    // Update repository with GitHub metadata
+    await supabase
       .from('repositories')
       .update({
-        description: metadata.description,
-        language: metadata.language,
-        stars: metadata.stars,
-        forks: metadata.forks
+        name: repoData.name,
+        owner: repoData.owner.login,
+        description: repoData.description,
+        language: repoData.language,
+        stars: repoData.stargazers_count,
+        forks: repoData.forks_count
       })
-      .eq('id', repositoryId)
+      .eq('id', repositoryId);
     
-    if (updateError) {
-      console.error('Error updating repository:', updateError)
-      throw updateError
-    }
-    
-    console.log('Repository metadata updated successfully')
-    
-    // Create some sample function analyses for demonstration
+    // Simulate a complete analysis by adding sample function analyses
     const sampleFunctions = [
       {
         repository_id: repositoryId,
         file_path: 'src/main.js',
         function_name: 'initialize',
         function_signature: 'function initialize(config)',
-        description: 'Initializes the application with the provided configuration',
-        parameters: [{ name: 'config', type: 'object', description: 'Application configuration object' }],
+        description: 'Initializes the application with the provided configuration.',
+        parameters: JSON.stringify([{ name: 'config', type: 'object', description: 'Configuration object' }]),
         return_value: 'void',
-        usage_example: 'initialize({ debug: true, port: 3000 })',
         complexity_level: 'medium',
-        tags: ['initialization', 'setup']
+        tags: ['core', 'startup']
       },
       {
         repository_id: repositoryId,
         file_path: 'src/utils/helpers.js',
-        function_name: 'validateInput',
-        function_signature: 'function validateInput(input, rules)',
-        description: 'Validates user input against a set of rules',
-        parameters: [
-          { name: 'input', type: 'any', description: 'The input to validate' },
-          { name: 'rules', type: 'object', description: 'Validation rules object' }
-        ],
-        return_value: 'boolean',
-        usage_example: 'validateInput(userEmail, { required: true, type: "email" })',
+        function_name: 'formatData',
+        function_signature: 'function formatData(data)',
+        description: 'Formats the input data according to application standards.',
+        parameters: JSON.stringify([{ name: 'data', type: 'object', description: 'Raw data object' }]),
+        return_value: 'object',
         complexity_level: 'low',
-        tags: ['validation', 'utility']
-      },
-      {
-        repository_id: repositoryId,
-        file_path: 'src/api/endpoints.js',
-        function_name: 'processApiRequest',
-        function_signature: 'async function processApiRequest(request)',
-        description: 'Processes incoming API requests and returns appropriate responses',
-        parameters: [{ name: 'request', type: 'Request', description: 'HTTP request object' }],
-        return_value: 'Promise<Response>',
-        usage_example: 'await processApiRequest(req)',
-        complexity_level: 'high',
-        tags: ['api', 'request-handling', 'async']
+        tags: ['utility', 'data']
       }
-    ]
-    
-    // Insert sample function analyses
-    const { error: functionsError } = await supabase
-      .from('function_analyses')
-      .insert(sampleFunctions)
-    
-    if (functionsError) {
-      console.error('Error inserting function analyses:', functionsError)
-      throw functionsError
-    }
-    
-    console.log('Sample function analyses created successfully')
-    
-    // Generate some sample Q&A content
-    const sampleQA = [
+    ];
+
+    await supabase.from('function_analyses').insert(sampleFunctions);
+
+    // Generate architecture documentation
+    const sampleArchDocs = [
       {
         repository_id: repositoryId,
-        function_id: 'func_001',
-        function_name: 'initialize',
-        question: 'How do I properly configure the initialization function?',
-        question_type: 'developer',
-        answer: 'The initialize function accepts a configuration object with properties like debug (boolean) and port (number). Make sure to provide valid values for each property to avoid runtime errors.'
+        title: 'System Overview',
+        section_type: 'architecture',
+        content: `# System Architecture\n\nThis repository follows a modular architecture with clear separation of concerns:\n\n- **Frontend**: User interface components\n- **Backend**: API and business logic\n- **Database**: Data persistence layer\n\nComponents communicate through well-defined interfaces, promoting maintainability and testability.`,
+        order_index: 1
       },
       {
         repository_id: repositoryId,
-        function_id: 'func_002',
-        function_name: 'validateInput',
-        question: 'What validation rules are supported?',
-        question_type: 'developer',
-        answer: 'The validation system supports rules like required (boolean), type (string), minLength (number), maxLength (number), and pattern (regex). You can combine multiple rules for comprehensive validation.'
-      },
-      {
-        repository_id: repositoryId,
-        function_id: 'func_003',
-        function_name: 'processApiRequest',
-        question: 'How does the API request processing handle errors?',
-        question_type: 'business',
-        answer: 'The API request processor automatically catches errors and returns appropriate HTTP status codes. It logs errors for debugging and provides user-friendly error messages in the response.'
+        title: 'Technology Stack',
+        section_type: 'technology',
+        content: `# Technology Stack\n\n${repoData.name} is built using the following technologies:\n\n- **Language**: ${repoData.language || 'Not specified'}\n- **Frontend**: Modern web technologies (HTML/CSS/JavaScript)\n- **Backend**: Server-side components handling business logic\n- **Database**: Structured data storage\n\nThis stack was chosen for its performance, scalability, and developer experience.`,
+        order_index: 2
       }
-    ]
-    
-    // Insert sample Q&A content
-    const { error: qaError } = await supabase
-      .from('function_qa')
-      .insert(sampleQA)
-    
-    if (qaError) {
-      console.error('Error inserting Q&A content:', qaError)
-      throw qaError
-    }
-    
-    console.log('Sample Q&A content created successfully')
-    
-    // Mark analysis as completed
-    const { error: completeError } = await supabase
+    ];
+
+    await supabase.from('architecture_docs').insert(sampleArchDocs);
+
+    // Generate business explanations
+    const sampleBusinessExplanations = [
+      {
+        repository_id: repositoryId,
+        category: 'Business Value',
+        question: `What business problem does ${repoData.name} solve?`,
+        answer: `${repoData.name} addresses key business challenges by providing a robust software solution. It helps organizations streamline workflows, reduce operational overhead, and improve collaboration. This repository implements features that directly impact bottom-line efficiency.`,
+        order_index: 1
+      },
+      {
+        repository_id: repositoryId,
+        category: 'User Workflows',
+        question: `How do users interact with ${repoData.name}?`,
+        answer: `Users interact with ${repoData.name} through an intuitive interface designed for optimal user experience. The typical workflow involves authentication, data input, processing, and reporting. The system guides users through complex processes while maintaining data integrity and security.`,
+        order_index: 2
+      }
+    ];
+
+    await supabase.from('business_explanations').insert(sampleBusinessExplanations);
+
+    // Mark analysis as complete
+    await supabase
       .from('repositories')
       .update({
         status: 'completed',
         analyzed_at: new Date().toISOString()
       })
-      .eq('id', repositoryId)
+      .eq('id', repositoryId);
+
+    console.log(`Analysis completed for repository ${repositoryId}`);
     
-    if (completeError) {
-      console.error('Error marking analysis as complete:', completeError)
-      throw completeError
-    }
+    // Generate developer questions using the new edge function
+    const devQuestionsResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-dev-questions`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repositoryId,
+          githubUrl: cleanedUrl,
+          repoData: {
+            name: repoData.name,
+            owner: repoData.owner.login,
+            description: repoData.description,
+            language: repoData.language,
+            stars: repoData.stargazers_count,
+            forks: repoData.forks_count
+          }
+        }),
+      }
+    );
     
-    console.log('Analysis completed successfully')
+    console.log('Developer questions generation initiated');
     
+    // Generate business questions using the new edge function
+    const businessQuestionsResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-business-questions`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repositoryId,
+          githubUrl: cleanedUrl,
+          repoData: {
+            name: repoData.name,
+            owner: repoData.owner.login,
+            description: repoData.description,
+            language: repoData.language,
+            stars: repoData.stargazers_count,
+            forks: repoData.forks_count
+          }
+        }),
+      }
+    );
+    
+    console.log('Business questions generation initiated');
+
     return new Response(JSON.stringify({
       success: true,
-      metadata,
-      github_url: githubUrl,
-      repository_id: repositoryId,
-      functions_analyzed: sampleFunctions.length,
-      qa_items_generated: sampleQA.length
+      message: 'Repository analysis completed successfully',
+      repositoryId,
+      repoName: repoData.name
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-    
+    });
+
   } catch (error) {
-    console.error('Error in scrape-github-repo:', error)
+    console.error('Error analyzing repository:', error);
     
-    // Try to update repository status to failed if we have repositoryId
-    const { repositoryId } = await req.json().catch(() => ({}))
+    // If repositoryId was provided, update status to failed
+    const { repositoryId } = await req.json().catch(() => ({}));
     if (repositoryId) {
-      try {
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
-        
-        await supabase
-          .from('repositories')
-          .update({ status: 'failed' })
-          .eq('id', repositoryId)
-      } catch (updateError) {
-        console.error('Error updating repository status to failed:', updateError)
-      }
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      await supabase
+        .from('repositories')
+        .update({ status: 'failed' })
+        .eq('id', repositoryId);
     }
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message
     }), {
-      status: 400,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    });
   }
-})
+});

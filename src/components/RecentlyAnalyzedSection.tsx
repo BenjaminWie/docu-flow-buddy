@@ -1,10 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Github, Star, GitFork, Calendar, ArrowRight, Clock, CheckCircle } from "lucide-react";
+import { Github, Star, GitFork, Calendar, ArrowRight, Clock, CheckCircle, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+
 interface Repository {
   id: string;
   github_url: string;
@@ -18,13 +21,18 @@ interface Repository {
   status: string;
   created_at: string;
 }
+
 const RecentlyAnalyzedSection = () => {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loading, setLoading] = useState(true);
+  const [regeneratingQuestions, setRegeneratingQuestions] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
+  const { toast } = useToast();
+
   useEffect(() => {
     fetchRepositories();
   }, []);
+
   const fetchRepositories = async () => {
     try {
       const {
@@ -41,6 +49,7 @@ const RecentlyAnalyzedSection = () => {
       setLoading(false);
     }
   };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -48,6 +57,7 @@ const RecentlyAnalyzedSection = () => {
       year: 'numeric'
     });
   };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -71,9 +81,66 @@ const RecentlyAnalyzedSection = () => {
           </Badge>;
     }
   };
+
   const canViewAnalysis = (repo: Repository) => {
     return repo.status === 'completed';
   };
+
+  const regenerateQuestions = async (repo: Repository, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent navigation to the analysis page
+    
+    setRegeneratingQuestions(prev => ({ ...prev, [repo.id]: true }));
+    
+    try {
+      // Generate developer questions
+      await supabase.functions.invoke('generate-dev-questions', {
+        body: {
+          repositoryId: repo.id,
+          githubUrl: repo.github_url,
+          repoData: {
+            name: repo.name,
+            owner: repo.owner,
+            description: repo.description,
+            language: repo.language,
+            stars: repo.stars,
+            forks: repo.forks
+          }
+        }
+      });
+      
+      // Generate business questions
+      await supabase.functions.invoke('generate-business-questions', {
+        body: {
+          repositoryId: repo.id,
+          githubUrl: repo.github_url,
+          repoData: {
+            name: repo.name,
+            owner: repo.owner,
+            description: repo.description,
+            language: repo.language,
+            stars: repo.stars,
+            forks: repo.forks
+          }
+        }
+      });
+      
+      toast({
+        title: "Questions Generated",
+        description: "New questions have been created for this repository.",
+      });
+      
+    } catch (error) {
+      console.error('Error regenerating questions:', error);
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate new questions. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRegeneratingQuestions(prev => ({ ...prev, [repo.id]: false }));
+    }
+  };
+
   if (loading) {
     return <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
@@ -88,6 +155,7 @@ const RecentlyAnalyzedSection = () => {
         </div>
       </section>;
   }
+
   if (repositories.length === 0) {
     return <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
@@ -108,6 +176,7 @@ const RecentlyAnalyzedSection = () => {
         </div>
       </section>;
   }
+
   return <section className="py-20 bg-gray-50">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
@@ -120,7 +189,14 @@ const RecentlyAnalyzedSection = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {repositories.map(repo => <Card key={repo.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
+          {repositories.map(repo => <Card key={repo.id} className="hover:shadow-lg transition-shadow cursor-pointer group" 
+              onClick={() => {
+                if (canViewAnalysis(repo)) {
+                  navigate(`/analysis/${repo.id}`);
+                } else {
+                  navigate('/analyze');
+                }
+              }}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 mb-2">
@@ -158,24 +234,35 @@ const RecentlyAnalyzedSection = () => {
                   </div>
                 </div>
 
-                <Button variant="outline" size="sm" className="w-full group-hover:bg-blue-50 group-hover:border-blue-200" onClick={() => {
-              if (canViewAnalysis(repo)) {
-                navigate(`/analysis/${repo.id}`);
-              } else {
-                navigate('/analyze');
-              }
-            }} disabled={repo.status === 'analyzing'}>
-                  {repo.status === 'completed' ? 'View Analysis' : repo.status === 'analyzing' ? 'Analysis in Progress...' : 'Continue Analysis'}
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 group-hover:bg-blue-50 group-hover:border-blue-200" disabled={repo.status === 'analyzing'}>
+                    {repo.status === 'completed' ? 'View Analysis' : repo.status === 'analyzing' ? 'Analysis in Progress...' : 'Continue Analysis'}
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                  
+                  {repo.status === 'completed' && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="px-2" 
+                      disabled={regeneratingQuestions[repo.id]}
+                      onClick={(e) => regenerateQuestions(repo, e)}
+                      title="Generate new questions">
+                      <PlusCircle className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>)}
         </div>
 
         <div className="text-center">
-          
+          <Button variant="outline" size="lg" onClick={() => navigate('/analyze')}>
+            Analyze Another Repository
+          </Button>
         </div>
       </div>
     </section>;
 };
+
 export default RecentlyAnalyzedSection;

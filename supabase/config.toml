@@ -1,1 +1,63 @@
+
 project_id = "hmuizdwvqkkqgjsnjxxi"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+
+[functions]
+serve = true
+
+[functions.web-search-ai]
+verify_jwt = false
+
+[functions.enhanced-qa-responder]
+verify_jwt = false
+
+[functions.generate-dev-questions]
+verify_jwt = false
+
+[functions.generate-business-questions]
+verify_jwt = false
+
+[functions.generate-qa-from-chat]
+verify_jwt = false
+
+[functions.scrape-github-repo]
+verify_jwt = false
+
+[functions.chat-with-ai]
+verify_jwt = false
+
+[functions.generate-questions]
+verify_jwt = false
+
+[functions.fetch-github-code]
+verify_jwt = false
+
+[functions.generate-documentation]
+verify_jwt = false

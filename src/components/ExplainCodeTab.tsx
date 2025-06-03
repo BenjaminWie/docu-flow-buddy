@@ -1,14 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MessageSquare, Plus, Filter } from "lucide-react";
+import { Search, MessageSquare, Plus, Filter, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import DevBusinessToggle from "./DevBusinessToggle";
 import EnhancedQAItem from "./EnhancedQAItem";
 import EnhancedChatInterface from "./EnhancedChatInterface";
+
 interface QAData {
   id: string;
   question: string;
@@ -24,6 +26,7 @@ interface QAData {
   }>;
   analogy_content?: string;
 }
+
 interface ArchitectureDoc {
   id: string;
   section_type: string;
@@ -36,6 +39,7 @@ interface ArchitectureDoc {
     url: string;
   }>;
 }
+
 interface BusinessExplanation {
   id: string;
   category: string;
@@ -49,17 +53,17 @@ interface BusinessExplanation {
     url: string;
   }>;
 }
+
 interface ExplainCodeTabProps {
   repositoryId: string;
   functionAnalyses: any[];
 }
+
 const ExplainCodeTab = ({
   repositoryId,
   functionAnalyses
 }: ExplainCodeTabProps) => {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'dev' | 'business'>('business');
   const [searchTerm, setSearchTerm] = useState('');
   const [qaData, setQaData] = useState<QAData[]>([]);
@@ -68,60 +72,87 @@ const ExplainCodeTab = ({
   const [showChat, setShowChat] = useState(false);
   const [chatQuestion, setChatQuestion] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [repository, setRepository] = useState<any>(null);
+
   useEffect(() => {
     fetchQAData();
     fetchArchitectureDocs();
     fetchBusinessExplanations();
+    fetchRepositoryData();
   }, [repositoryId]);
+
+  const fetchRepositoryData = async () => {
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('*')
+      .eq('id', repositoryId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching repository:', error);
+    } else {
+      setRepository(data);
+    }
+  };
+
   const fetchQAData = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from('function_qa').select('*').eq('repository_id', repositoryId).order('rating_score', {
-      ascending: false
-    });
+    const { data, error } = await supabase
+      .from('function_qa')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('rating_score', { ascending: false });
+      
     if (error) {
       console.error('Error fetching Q&A data:', error);
     } else {
       setQaData(data || []);
     }
   };
+
   const fetchArchitectureDocs = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from('architecture_docs').select('*').eq('repository_id', repositoryId).order('order_index');
+    const { data, error } = await supabase
+      .from('architecture_docs')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('order_index');
+      
     if (error) {
       console.error('Error fetching architecture docs:', error);
     } else {
       setArchitectureDocs(data || []);
     }
   };
+
   const fetchBusinessExplanations = async () => {
-    const {
-      data,
-      error
-    } = await supabase.from('business_explanations').select('*').eq('repository_id', repositoryId).order('order_index');
+    const { data, error } = await supabase
+      .from('business_explanations')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('order_index');
+      
     if (error) {
       console.error('Error fetching business explanations:', error);
     } else {
       setBusinessExplanations(data || []);
     }
   };
+
   const handleCreateQA = async (question: string, answer: string, questionType: string, mode: string) => {
-    const {
-      error
-    } = await supabase.from('function_qa').insert({
-      repository_id: repositoryId,
-      function_id: 'general',
-      function_name: 'General',
-      question,
-      answer,
-      question_type: questionType,
-      view_mode: mode,
-      content_format: 'markdown',
-      external_links: []
-    });
+    const { error } = await supabase
+      .from('function_qa')
+      .insert({
+        repository_id: repositoryId,
+        function_id: 'general',
+        function_name: 'General',
+        question,
+        answer,
+        question_type: questionType,
+        view_mode: mode,
+        content_format: 'markdown',
+        external_links: []
+      });
+      
     if (error) {
       toast({
         title: "Error",
@@ -136,12 +167,64 @@ const ExplainCodeTab = ({
       });
     }
   };
+
   const handleChatStart = (question: string) => {
     setChatQuestion(question);
     setShowChat(true);
   };
+
+  const handleGenerateQuestions = async () => {
+    if (!repository) return;
+    
+    setGeneratingQuestions(true);
+    toast({
+      title: "Generating Questions",
+      description: "This may take a moment..."
+    });
+
+    try {
+      // Generate questions based on current view mode
+      const endpoint = viewMode === 'dev' ? 'generate-dev-questions' : 'generate-business-questions';
+      
+      const { data, error } = await supabase.functions.invoke(endpoint, {
+        body: {
+          repositoryId,
+          githubUrl: repository.github_url,
+          repoData: {
+            name: repository.name,
+            owner: repository.owner,
+            description: repository.description,
+            language: repository.language,
+            stars: repository.stars,
+            forks: repository.forks
+          }
+        }
+      });
+
+      if (error) throw error;
+      
+      fetchQAData(); // Refresh the Q&A data to show new questions
+      
+      toast({
+        title: "Questions Generated",
+        description: `${data?.count || 5} new ${viewMode === 'dev' ? 'developer' : 'business'} questions created.`
+      });
+    } catch (err) {
+      console.error('Error generating questions:', err);
+      toast({
+        title: "Generation Failed",
+        description: "Could not generate new questions. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingQuestions(false);
+    }
+  };
+
   const filteredQA = qaData.filter(qa => {
-    const matchesSearch = qa.question.toLowerCase().includes(searchTerm.toLowerCase()) || qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) || qa.function_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = qa.question.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          qa.function_name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMode = viewMode === 'dev' ? qa.view_mode !== 'business' : qa.view_mode === 'business';
     return matchesSearch && matchesMode;
   });
@@ -169,16 +252,32 @@ const ExplainCodeTab = ({
     content_format: doc.content_format || 'markdown',
     external_links: doc.external_links || []
   }));
+
   const allQAData = [...filteredQA, ...convertedDocs];
 
   // Get unique categories for business mode
   const categories = ['all', ...new Set(businessExplanations.map(exp => exp.category))];
+
   return <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            OpenRewrite Knowledge Base
+          <CardTitle className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              OpenRewrite Knowledge Base
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleGenerateQuestions}
+                disabled={generatingQuestions}
+                className="flex items-center gap-1"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Generate {viewMode === 'dev' ? 'Developer' : 'Business'} Questions
+              </Button>
+            </div>
           </CardTitle>
           <p className="text-gray-600">Comprehensive documentation and Q&A for your repository. Switch between technical documentation and business-friendly analogies.</p>
         </CardHeader>
@@ -232,7 +331,11 @@ const ExplainCodeTab = ({
 
             {/* Chat Interface */}
             <div className="lg:col-span-1">
-              {showChat ? <EnhancedChatInterface repositoryId={repositoryId} initialQuestion={chatQuestion} onQuestionCreate={handleCreateQA} /> : <Card>
+              {showChat ? <EnhancedChatInterface 
+                repositoryId={repositoryId} 
+                initialQuestion={chatQuestion} 
+                onQuestionCreate={handleCreateQA} 
+              /> : <Card>
                   <CardContent className="pt-6">
                     <div className="text-center py-8 text-gray-500">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -257,4 +360,5 @@ const ExplainCodeTab = ({
       </Card>
     </div>;
 };
+
 export default ExplainCodeTab;
