@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,8 @@ import {
   X,
   Edit,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from "lucide-react";
 
 interface FunctionAnalysis {
@@ -101,15 +103,11 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
       console.error('Error fetching questions:', error);
     } else {
       setQuestions(data || []);
-      
-      // If no questions exist, generate some automatically
-      if (!data || data.length === 0) {
-        generateQuestions();
-      }
     }
   };
 
   const generateQuestions = async () => {
+    setLoading('questions');
     try {
       const { data, error } = await supabase.functions.invoke('generate-questions', {
         body: {
@@ -120,10 +118,21 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
 
       if (error) throw error;
       
-      // Refresh questions after generation
+      toast({
+        title: "Success",
+        description: "Questions generated successfully",
+      });
+      
       fetchQuestions();
     } catch (error) {
       console.error('Error generating questions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate questions",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(null);
     }
   };
 
@@ -430,16 +439,35 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
       )}
 
       {/* AI Questions */}
-      {questions.length > 0 && (
-        <Card>
-          <CardHeader>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
               Development Questions
             </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {questions.map(qa => (
+            {questions.length === 0 && (
+              <Button
+                onClick={generateQuestions}
+                disabled={loading === 'questions'}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading === 'questions' ? 'animate-spin' : ''}`} />
+                Generate Questions
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {questions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No questions available yet.</p>
+              <p className="text-sm">Click "Generate Questions" to create relevant questions for this function.</p>
+            </div>
+          ) : (
+            questions.map(qa => (
               <div key={qa.id} className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="outline">{qa.question_type}</Badge>
@@ -470,10 +498,10 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
                   </div>
                 )}
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
