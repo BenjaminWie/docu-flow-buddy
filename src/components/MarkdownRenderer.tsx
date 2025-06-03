@@ -1,4 +1,3 @@
-
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -34,7 +33,7 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
     <div className="prose prose-gray max-w-none">
       <ReactMarkdown
         components={{
-          code({ children, className, ...props }) {
+          code({ children, className }) {
             const match = /language-(\w+)/.exec(className || '');
             const codeContent = String(children).replace(/\n$/, '');
             
@@ -50,7 +49,6 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
                     padding: '1rem',
                     fontSize: '0.875rem',
                   }}
-                  {...props}
                 >
                   {codeContent}
                 </SyntaxHighlighter>
@@ -59,7 +57,6 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
             ) : (
               <code
                 className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono"
-                {...props}
               >
                 {children}
               </code>

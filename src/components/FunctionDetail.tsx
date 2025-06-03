@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,18 +5,17 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import GitHubCodePreview from "./GitHubCodePreview";
 import { 
   ArrowLeft, 
   FileText, 
   TestTube, 
   Brain, 
-  Github, 
   Sparkles,
   Check,
   X,
   Edit,
   MessageSquare,
-  ExternalLink,
   RefreshCw
 } from "lucide-react";
 
@@ -62,13 +60,20 @@ interface FunctionQA {
   question_type: string;
 }
 
+interface GitHubCodeData {
+  content: string;
+  startLine: number;
+  endLine: number;
+  githubUrl: string;
+  language: string;
+}
+
 const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [proposals, setProposals] = useState<DocumentationProposal[]>([]);
   const [questions, setQuestions] = useState<FunctionQA[]>([]);
-  const [githubCode, setGithubCode] = useState<string>('');
-  const [githubUrl, setGithubUrl] = useState<string>('');
+  const [githubCodeData, setGithubCodeData] = useState<GitHubCodeData | null>(null);
   const [userContent, setUserContent] = useState<{ [key: string]: string }>({});
   const [answerInput, setAnswerInput] = useState<{ [key: string]: string }>({});
 
@@ -148,8 +153,13 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
 
       if (error) throw error;
 
-      setGithubCode(data.content);
-      setGithubUrl(data.githubUrl);
+      setGithubCodeData({
+        content: data.content,
+        startLine: data.startLine,
+        endLine: data.endLine,
+        githubUrl: data.githubUrl,
+        language: data.language
+      });
     } catch (error) {
       console.error('Error fetching GitHub code:', error);
       toast({
@@ -276,15 +286,6 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
                 <Badge variant="outline">{functionData.file_path}</Badge>
               </div>
             </div>
-            {githubUrl && (
-              <Button variant="outline" asChild>
-                <a href={githubUrl} target="_blank" rel="noopener noreferrer">
-                  <Github className="w-4 h-4 mr-2" />
-                  View on GitHub
-                  <ExternalLink className="w-3 h-3 ml-1" />
-                </a>
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -312,21 +313,16 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
         </CardContent>
       </Card>
 
-      {/* GitHub Code View */}
-      {githubCode && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Github className="w-5 h-5" />
-              Function Implementation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="bg-gray-900 text-green-400 p-4 rounded overflow-x-auto text-sm">
-              {githubCode}
-            </pre>
-          </CardContent>
-        </Card>
+      {/* GitHub Code Preview */}
+      {githubCodeData && (
+        <GitHubCodePreview
+          code={githubCodeData.content}
+          language={githubCodeData.language}
+          githubUrl={githubCodeData.githubUrl}
+          startLine={githubCodeData.startLine}
+          endLine={githubCodeData.endLine}
+          filePath={functionData.file_path}
+        />
       )}
 
       {/* Action Buttons */}

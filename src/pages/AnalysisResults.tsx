@@ -99,9 +99,9 @@ const AnalysisResults = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Repository not found</p>
-          <Button onClick={() => navigate('/analyze')}>
+          <Button onClick={() => navigate('/repositories')}>
             <ArrowLeft className="mr-2 w-4 h-4" />
-            Back to Analysis
+            Back to Repositories
           </Button>
         </div>
       </div>
@@ -115,11 +115,11 @@ const AnalysisResults = () => {
         <div className="mb-8">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/analyze')}
+            onClick={() => navigate('/repositories')}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 w-4 h-4" />
-            Back to Analysis
+            Back to Repositories
           </Button>
           
           <Card>
