@@ -1,5 +1,5 @@
 
-import { MessageSquare, FileSearch, TrendingDown, ArrowRight, Github, Users, Code } from "lucide-react";
+import { MessageSquare, FileSearch, TrendingDown, ArrowRight, Github, Users, Code, CheckCircle, Zap, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -11,25 +11,27 @@ const SolutionSection = () => {
       subtitle: "For Devs & Business",
       description: "Ask questions about your codebase in plain language. Get answers that make sense whether you code or not.",
       features: [
-        "New dev: 'How do I set up the payment flow?'",
-        "Business: 'What happens when a user cancels?'",
-        "Dev: 'Why is this function so slow?'"
+        { icon: Users, text: "New dev: 'How do I set up the payment flow?'", color: "text-blue-400" },
+        { icon: Code, text: "Business: 'What happens when a user cancels?'", color: "text-green-400" },
+        { icon: Zap, text: "Dev: 'Why is this function so slow?'", color: "text-orange-400" }
       ],
       color: "from-cyan-400 to-blue-500",
-      bgColor: "bg-cyan-900/20 border-cyan-500/30"
+      bgColor: "bg-cyan-900/20 border-cyan-500/30",
+      screenshot: "Chat interface showing natural language Q&A"
     },
     {
       icon: FileSearch,
       title: "Smart Documentation",
       subtitle: "Only What's Needed",
-      description: "Documents only the complex, poorly understood functions that actually waste your time. Not everything.",
+      description: "Documents only the complex functions that actually need it. Not everything.",
       features: [
-        "Identifies functions causing confusion",
-        "Creates clear explanations for complex logic",
-        "Helps with refactoring suggestions"
+        { icon: Target, text: "Identifies functions causing confusion", color: "text-purple-400" },
+        { icon: CheckCircle, text: "Creates clear explanations for complex logic", color: "text-green-400" },
+        { icon: Zap, text: "Helps with refactoring suggestions", color: "text-orange-400" }
       ],
       color: "from-green-400 to-emerald-500",
-      bgColor: "bg-green-900/20 border-green-500/30"
+      bgColor: "bg-green-900/20 border-green-500/30",
+      screenshot: "Function documentation with complexity scores"
     },
     {
       icon: TrendingDown,
@@ -37,12 +39,13 @@ const SolutionSection = () => {
       subtitle: "Current vs Ideal State",
       description: "See exactly where your codebase is versus where it should be. Make informed decisions about refactoring.",
       features: [
-        "Visual debt mapping",
-        "Priority recommendations",
-        "Business impact of technical choices"
+        { icon: Target, text: "Visual debt mapping across files", color: "text-red-400" },
+        { icon: CheckCircle, text: "Priority recommendations with impact", color: "text-yellow-400" },
+        { icon: Users, text: "Business impact of technical choices", color: "text-blue-400" }
       ],
       color: "from-orange-400 to-red-500",
-      bgColor: "bg-orange-900/20 border-orange-500/30"
+      bgColor: "bg-orange-900/20 border-orange-500/30",
+      screenshot: "Technical debt dashboard with metrics"
     }
   ];
 
@@ -63,65 +66,115 @@ const SolutionSection = () => {
           </p>
         </div>
 
-        {/* Three Core Functions */}
-        <div className="grid lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-20">
+        {/* Three Core Functions with Screenshots */}
+        <div className="space-y-12 max-w-7xl mx-auto mb-20">
           {functions.map((func, index) => (
-            <Card key={index} className={`${func.bgColor} hover:bg-opacity-40 transition-all duration-300 group h-full`}>
-              <CardContent className="p-8 h-full flex flex-col">
-                <div className="text-center mb-6">
-                  <div className={`p-4 rounded-full bg-gradient-to-r ${func.color} mb-4 group-hover:scale-110 transition-transform w-16 h-16 mx-auto flex items-center justify-center`}>
-                    <func.icon className="w-8 h-8 text-white" />
+            <div key={index} className={`grid lg:grid-cols-2 gap-8 items-center ${index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''}`}>
+              {/* Content */}
+              <div className={`${index % 2 === 1 ? 'lg:col-start-2' : ''}`}>
+                <Card className={`${func.bgColor} hover:bg-opacity-40 transition-all duration-300 group h-full`}>
+                  <CardContent className="p-8">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className={`p-4 rounded-full bg-gradient-to-r ${func.color} group-hover:scale-110 transition-transform`}>
+                        <func.icon className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-semibold text-white">
+                          {func.title}
+                        </h3>
+                        <p className="text-sm text-gray-400 font-medium">
+                          {func.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-300 text-lg leading-relaxed mb-8">
+                      {func.description}
+                    </p>
+                    
+                    <div className="space-y-4">
+                      {func.features.map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+                          <feature.icon className={`w-5 h-5 ${feature.color}`} />
+                          <span className="text-gray-300 text-sm leading-relaxed">{feature.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Screenshot Mockup */}
+              <div className={`${index % 2 === 1 ? 'lg:col-start-1' : ''}`}>
+                <div className="relative">
+                  <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 shadow-2xl">
+                    {/* Browser-like header */}
+                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-700">
+                      <div className="flex gap-2">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <div className="flex-1 text-center">
+                        <div className="bg-gray-800 rounded px-3 py-1 text-gray-400 text-xs">
+                          docu-buddy.app
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Screenshot content */}
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded p-6 min-h-[200px] flex items-center justify-center">
+                      <div className="text-center">
+                        <func.icon className={`w-12 h-12 mx-auto mb-4 text-gray-400`} />
+                        <p className="text-gray-400 text-sm italic">
+                          {func.screenshot}
+                        </p>
+                        <div className="mt-4 space-y-2">
+                          <div className="h-2 bg-gray-700 rounded w-3/4 mx-auto"></div>
+                          <div className="h-2 bg-gray-700 rounded w-1/2 mx-auto"></div>
+                          <div className="h-2 bg-gray-700 rounded w-2/3 mx-auto"></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    {func.title}
-                  </h3>
-                  <p className="text-sm text-gray-400 mb-4 font-medium">
-                    {func.subtitle}
-                  </p>
-                  <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                    {func.description}
-                  </p>
+                  
+                  {/* Floating indicator */}
+                  <div className={`absolute -top-4 -right-4 w-8 h-8 rounded-full bg-gradient-to-r ${func.color} flex items-center justify-center text-white font-bold text-sm`}>
+                    {index + 1}
+                  </div>
                 </div>
-                
-                <div className="mt-auto">
-                  <ul className="text-xs text-gray-400 space-y-2">
-                    {func.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <div className="w-1 h-1 bg-cyan-400 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="leading-relaxed">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* Interactive Demo Preview */}
+        {/* See It In Action */}
         <div className="max-w-4xl mx-auto">
           <Card className="bg-gray-800/50 border-gray-600 overflow-hidden">
             <CardContent className="p-8">
-              <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="text-center mb-8">
+                <h3 className="text-3xl font-bold text-white mb-4">
+                  See It In Action
+                </h3>
+                <p className="text-gray-300 text-lg">
+                  Experience Docu Buddy with the OpenRewrite repository - a complex Java codebase made understandable.
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-8 items-center mb-8">
                 <div>
-                  <h3 className="text-2xl font-bold text-white mb-4">
-                    See It In Action
-                  </h3>
-                  <p className="text-gray-300 mb-6">
-                    Watch how Docu Buddy analyzes the OpenRewrite repository and makes complex Java code understandable for everyone.
-                  </p>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-3 text-gray-400">
-                      <Users className="w-4 h-4 text-green-400" />
-                      <span className="text-sm">Business-friendly explanations</span>
+                      <Users className="w-5 h-5 text-green-400" />
+                      <span>Business-friendly explanations</span>
                     </div>
                     <div className="flex items-center gap-3 text-gray-400">
-                      <Code className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm">Developer onboarding shortcuts</span>
+                      <Code className="w-5 h-5 text-blue-400" />
+                      <span>Developer onboarding shortcuts</span>
                     </div>
                     <div className="flex items-center gap-3 text-gray-400">
-                      <TrendingDown className="w-4 h-4 text-orange-400" />
-                      <span className="text-sm">Technical debt insights</span>
+                      <TrendingDown className="w-5 h-5 text-orange-400" />
+                      <span>Technical debt insights</span>
                     </div>
                   </div>
                 </div>
@@ -135,6 +188,21 @@ const SolutionSection = () => {
                     <div className="text-gray-300">✓ 5 technical debt areas identified</div>
                   </div>
                 </div>
+              </div>
+              
+              {/* CTA Button */}
+              <div className="text-center">
+                <Button 
+                  size="lg"
+                  onClick={() => window.location.href = '/analysis/openrewrite-rewrite'}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold group transition-all duration-300 transform hover:scale-105"
+                >
+                  View OpenRewrite Analysis
+                  <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+                <p className="text-gray-400 text-sm mt-3">
+                  Explore the complete analysis in under 30 seconds
+                </p>
               </div>
             </CardContent>
           </Card>
