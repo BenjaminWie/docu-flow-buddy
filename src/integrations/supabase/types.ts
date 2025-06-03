@@ -85,6 +85,76 @@ export type Database = {
           },
         ]
       }
+      chat_conversations: {
+        Row: {
+          conversation_type: string
+          created_at: string
+          function_id: string | null
+          id: string
+          repository_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          conversation_type?: string
+          created_at?: string
+          function_id?: string | null
+          id?: string
+          repository_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conversation_type?: string
+          created_at?: string
+          function_id?: string | null
+          id?: string
+          repository_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentation_proposals: {
         Row: {
           ai_generated_content: string | null
@@ -194,8 +264,11 @@ export type Database = {
           id: string
           question: string
           question_type: string
+          rating_score: number | null
           repository_id: string
+          source_chat_id: string | null
           updated_at: string
+          view_mode: string | null
         }
         Insert: {
           answer?: string | null
@@ -205,8 +278,11 @@ export type Database = {
           id?: string
           question: string
           question_type: string
+          rating_score?: number | null
           repository_id: string
+          source_chat_id?: string | null
           updated_at?: string
+          view_mode?: string | null
         }
         Update: {
           answer?: string | null
@@ -216,8 +292,11 @@ export type Database = {
           id?: string
           question?: string
           question_type?: string
+          rating_score?: number | null
           repository_id?: string
+          source_chat_id?: string | null
           updated_at?: string
+          view_mode?: string | null
         }
         Relationships: [
           {
@@ -225,6 +304,45 @@ export type Database = {
             columns: ["repository_id"]
             isOneToOne: false
             referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "function_qa_source_chat_id_fkey"
+            columns: ["source_chat_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qa_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          qa_id: string
+          rating: number
+          user_session: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          qa_id: string
+          rating: number
+          user_session: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          qa_id?: string
+          rating?: number
+          user_session?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qa_ratings_qa_id_fkey"
+            columns: ["qa_id"]
+            isOneToOne: false
+            referencedRelation: "function_qa"
             referencedColumns: ["id"]
           },
         ]
