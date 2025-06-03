@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { githubUrl, filePath, functionName, startLine, endLine } = await req.json()
+    const { githubUrl, filePath, functionName } = await req.json()
     
     // Parse GitHub URL to get owner and repo
     const urlParts = githubUrl.replace('https://github.com/', '').split('/')
@@ -42,30 +42,21 @@ serve(async (req) => {
     // Decode base64 content
     const fileContent = atob(data.content)
     
-    // Try to extract the specific function or line range
+    // Try to extract the specific function
     let functionCode = fileContent
-    let actualStartLine = 1
-    let actualEndLine = fileContent.split('\n').length
+    let startLine = 1
     
-    if (startLine && endLine) {
-      // Extract specific line range
-      const lines = fileContent.split('\n')
-      const extractedLines = lines.slice(startLine - 1, endLine)
-      functionCode = extractedLines.join('\n')
-      actualStartLine = startLine
-      actualEndLine = endLine
-    } else if (functionName) {
-      // Try to find the function
+    if (functionName) {
       const lines = fileContent.split('\n')
       const functionRegex = new RegExp(`(function\\s+${functionName}|const\\s+${functionName}\\s*=|${functionName}\\s*[:=]\\s*function|${functionName}\\s*[:=]\\s*\\(.*\\)\\s*=>)`, 'i')
       
       for (let i = 0; i < lines.length; i++) {
         if (functionRegex.test(lines[i])) {
-          actualStartLine = i + 1
+          startLine = i + 1
           
           // Find the end of the function (basic heuristic)
           let braceCount = 0
-          let endLineIndex = i
+          let endLine = i
           let foundOpenBrace = false
           
           for (let j = i; j < lines.length; j++) {
@@ -77,7 +68,7 @@ serve(async (req) => {
               } else if (char === '}') {
                 braceCount--
                 if (foundOpenBrace && braceCount === 0) {
-                  endLineIndex = j
+                  endLine = j
                   break
                 }
               }
@@ -85,22 +76,17 @@ serve(async (req) => {
             if (foundOpenBrace && braceCount === 0) break
           }
           
-          actualEndLine = endLineIndex + 1
-          functionCode = lines.slice(i, endLineIndex + 1).join('\n')
+          functionCode = lines.slice(i, endLine + 1).join('\n')
           break
         }
       }
     }
 
-    // Generate GitHub permalink with line numbers
-    const permalinkUrl = `${githubUrl}/blob/main/${filePath}${actualStartLine !== 1 || actualEndLine !== fileContent.split('\n').length ? `#L${actualStartLine}-L${actualEndLine}` : ''}`
-
     return new Response(JSON.stringify({
       content: functionCode,
       fullContent: fileContent,
-      startLine: actualStartLine,
-      endLine: actualEndLine,
-      githubUrl: permalinkUrl,
+      startLine,
+      githubUrl: `${githubUrl}/blob/main/${filePath}`,
       language: getLanguageFromPath(filePath)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2,14 +2,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Github } from "lucide-react";
+import { ArrowRight, Github, Database } from "lucide-react";
 import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
+import { useNavigate } from "react-router-dom";
 
-interface HeroSectionProps {
-  onAnalysisComplete?: (repositoryId: string) => void;
-}
-
-const HeroSection = ({ onAnalysisComplete }: HeroSectionProps) => {
+const HeroSection = () => {
+  const navigate = useNavigate();
   const [githubUrl, setGithubUrl] = useState("");
   const { analyzeRepository, isAnalyzing } = useRepositoryAnalysis();
 
@@ -18,8 +16,8 @@ const HeroSection = ({ onAnalysisComplete }: HeroSectionProps) => {
     
     try {
       const repositoryId = await analyzeRepository(githubUrl);
-      if (repositoryId && onAnalysisComplete) {
-        onAnalysisComplete(repositoryId);
+      if (repositoryId) {
+        navigate(`/analysis/${repositoryId}`);
       }
     } catch (error) {
       console.error('Analysis failed:', error);
@@ -31,6 +29,18 @@ const HeroSection = ({ onAnalysisComplete }: HeroSectionProps) => {
       {/* Background effects */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-600 via-transparent to-transparent"></div>
+      </div>
+
+      {/* Navigation */}
+      <div className="absolute top-6 right-6 z-10">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/repositories')}
+          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+        >
+          <Database className="w-4 h-4 mr-2" />
+          View All Repositories
+        </Button>
       </div>
 
       <div className="relative z-10 container mx-auto px-6 text-center">
