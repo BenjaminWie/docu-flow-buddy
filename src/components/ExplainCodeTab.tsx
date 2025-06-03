@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -149,7 +150,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
   });
 
   // Convert docs to Q&A format for unified display
-  const convertedDocs = viewMode === 'business' 
+  const convertedDocs: QAData[] = viewMode === 'business' 
     ? businessExplanations.map(exp => ({
         id: `business-${exp.id}`,
         question: exp.question || exp.category,
@@ -159,7 +160,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         function_name: 'Business Logic',
         tags: ['business', 'documentation'],
         is_approved: true
-      } as QAData))
+      }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
         question: doc.title,
@@ -169,7 +170,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         function_name: 'Architecture',
         tags: ['architecture', 'documentation'],
         is_approved: true
-      } as QAData));
+      }));
 
   const allQAData = [...filteredQA, ...convertedDocs];
 

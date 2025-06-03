@@ -9,9 +9,12 @@ interface QAData {
   question: string;
   answer: string | null;
   question_type: string;
-  rating_score: number | null;
   view_mode: string | null;
   function_name: string;
+  tags?: string[];
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 interface QAListProps {
