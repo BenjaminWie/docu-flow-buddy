@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Github, ArrowLeft, Code, Building, Users, Star, GitFork } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import FunctionOverview from "@/components/FunctionOverview";
+import FunctionDetail from "@/components/FunctionDetail";
 
 interface Repository {
   id: string;
@@ -50,6 +51,14 @@ interface BusinessExplanation {
   order_index: number;
 }
 
+interface CodeSection {
+  name: string;
+  path: string;
+  functions: FunctionAnalysis[];
+  complexity: 'simple' | 'moderate' | 'complex';
+  functionsCount: number;
+}
+
 const AnalysisResults = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -59,6 +68,8 @@ const AnalysisResults = () => {
   const [architectureDocs, setArchitectureDocs] = useState<ArchitectureDoc[]>([]);
   const [businessExplanations, setBusinessExplanations] = useState<BusinessExplanation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSection, setSelectedSection] = useState<CodeSection | null>(null);
+  const [view, setView] = useState<'overview' | 'section'>('overview');
 
   useEffect(() => {
     if (!id) return;
@@ -117,6 +128,16 @@ const AnalysisResults = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSectionClick = (section: CodeSection) => {
+    setSelectedSection(section);
+    setView('section');
+  };
+
+  const handleBackToOverview = () => {
+    setSelectedSection(null);
+    setView('overview');
   };
 
   const getComplexityColor = (level: string) => {
@@ -219,53 +240,24 @@ const AnalysisResults = () => {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Function Documentation</CardTitle>
-                  <p className="text-gray-600">Detailed explanations of key functions and their usage</p>
+                  <CardTitle>Integration Buddy</CardTitle>
+                  <p className="text-gray-600">
+                    Hierarchical code analysis with complexity ranking and development tools
+                  </p>
                 </CardHeader>
               </Card>
               
-              <div className="grid gap-6">
-                {functionAnalyses.map((func) => (
-                  <Card key={func.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg font-mono">{func.function_name}</CardTitle>
-                          <p className="text-sm text-gray-600 mt-1">{func.file_path}</p>
-                        </div>
-                        <Badge className={getComplexityColor(func.complexity_level)}>
-                          {func.complexity_level}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-gray-700">{func.description}</p>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Function Signature</h4>
-                        <code className="bg-gray-100 p-2 rounded text-sm block">
-                          {func.function_signature}
-                        </code>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-2">Usage Example</h4>
-                        <code className="bg-gray-100 p-2 rounded text-sm block">
-                          {func.usage_example}
-                        </code>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {func.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {view === 'overview' ? (
+                <FunctionOverview 
+                  functions={functionAnalyses} 
+                  onSectionClick={handleSectionClick}
+                />
+              ) : selectedSection ? (
+                <FunctionDetail 
+                  section={selectedSection} 
+                  onBack={handleBackToOverview}
+                />
+              ) : null}
             </div>
           </TabsContent>
 
