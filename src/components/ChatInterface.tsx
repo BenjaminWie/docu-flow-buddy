@@ -1,19 +1,17 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Plus, Bot, User, Save, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Send, Plus, Bot, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import MarkdownRenderer from "./MarkdownRenderer";
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
-  sources?: Array<{ title: string; url: string; snippet: string }>;
 }
 
 interface ChatConversation {
@@ -22,21 +20,20 @@ interface ChatConversation {
   created_at: string;
 }
 
-interface EnhancedChatInterfaceProps {
+interface ChatInterfaceProps {
   repositoryId: string;
   functionId?: string;
   initialQuestion?: string;
   onQuestionCreate: (question: string, answer: string, questionType: string, viewMode: string) => void;
 }
 
-const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQuestionCreate }: EnhancedChatInterfaceProps) => {
+const ChatInterface = ({ repositoryId, functionId, initialQuestion, onQuestionCreate }: ChatInterfaceProps) => {
   const { toast } = useToast();
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState(initialQuestion || '');
   const [isLoading, setIsLoading] = useState(false);
-  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,6 +74,7 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
     if (error) {
       console.error('Error fetching messages:', error);
     } else {
+      // Type-safe conversion from database to ChatMessage
       const typedMessages: ChatMessage[] = (data || []).map(msg => ({
         id: msg.id,
         role: msg.role as 'user' | 'assistant',
@@ -141,19 +139,16 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
       return;
     }
 
-    // Get AI response with web search
+    // Get AI response
     try {
-      const { data, error } = await supabase.functions.invoke(
-        webSearchEnabled ? 'web-search-ai' : 'chat-with-ai',
-        {
-          body: {
-            message: content,
-            conversationId,
-            repositoryId,
-            functionId
-          }
+      const { data, error } = await supabase.functions.invoke('chat-with-ai', {
+        body: {
+          message: content,
+          conversationId,
+          repositoryId,
+          functionId
         }
-      );
+      });
 
       if (error) throw error;
 
@@ -188,11 +183,11 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
     }
   };
 
-  const saveConversationAsQA = async () => {
+  const createQAFromChat = async () => {
     if (messages.length < 2) {
       toast({
         title: "Error",
-        description: "Need at least one question and answer to save as Q&A",
+        description: "Need at least one question and answer to create Q&A",
         variant: "destructive"
       });
       return;
@@ -210,44 +205,17 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
       return;
     }
 
-    // Use LLM to create a refined Q&A from the conversation
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-qa-from-chat', {
-        body: {
-          messages: messages.slice(-4), // Last 4 messages for context
-          repositoryId,
-          functionId
-        }
-      });
+    onQuestionCreate(
+      lastUserMessage.content,
+      lastAssistantMessage.content,
+      'general',
+      'dev'
+    );
 
-      if (error) throw error;
-
-      onQuestionCreate(
-        data.question,
-        data.answer,
-        data.questionType || 'general',
-        data.viewMode || 'dev'
-      );
-
-      toast({
-        title: "Success",
-        description: "Q&A created and saved to knowledge base",
-      });
-    } catch (error) {
-      console.error('Error generating Q&A:', error);
-      // Fallback to simple creation
-      onQuestionCreate(
-        lastUserMessage.content,
-        lastAssistantMessage.content,
-        'general',
-        'dev'
-      );
-
-      toast({
-        title: "Success",
-        description: "Q&A created from chat conversation",
-      });
-    }
+    toast({
+      title: "Success",
+      description: "Q&A created from chat conversation",
+    });
   };
 
   return (
@@ -256,21 +224,11 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Chat Conversations</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={webSearchEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={() => setWebSearchEnabled(!webSearchEnabled)}
-              >
-                <Globe className="w-4 h-4 mr-2" />
-                Web Search
-              </Button>
-              <Button size="sm" onClick={() => startNewConversation()}>
-                <Plus className="w-4 h-4 mr-2" />
-                New Chat
-              </Button>
-            </div>
+            <CardTitle className="text-lg">Conversations</CardTitle>
+            <Button size="sm" onClick={() => startNewConversation()}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Chat
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -297,11 +255,10 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">OpenRewrite Assistant</CardTitle>
+            <CardTitle className="text-lg">Chat</CardTitle>
             {messages.length > 0 && (
-              <Button variant="outline" size="sm" onClick={saveConversationAsQA}>
-                <Save className="w-4 h-4 mr-2" />
-                Save as Q&A
+              <Button variant="outline" size="sm" onClick={createQAFromChat}>
+                Create Q&A
               </Button>
             )}
           </div>
@@ -313,7 +270,7 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
                 key={message.id}
                 className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`flex gap-2 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                     message.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
                   }`}>
@@ -328,27 +285,7 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
                       ? 'bg-blue-500 text-white' 
                       : 'bg-gray-100 text-gray-900'
                   }`}>
-                    {message.role === 'assistant' ? (
-                      <MarkdownRenderer content={message.content} />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    )}
-                    {message.sources && message.sources.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-600 mb-2">Sources:</p>
-                        {message.sources.map((source, idx) => (
-                          <a
-                            key={idx}
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-xs text-blue-600 hover:underline mb-1"
-                          >
-                            {source.title}
-                          </a>
-                        ))}
-                      </div>
-                    )}
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
                 </div>
               </div>
@@ -375,7 +312,7 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
             <Textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Ask about OpenRewrite architecture, recipes, setup, or anything else..."
+              placeholder="Ask a question about the code..."
               className="min-h-[60px]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -398,4 +335,4 @@ const EnhancedChatInterface = ({ repositoryId, functionId, initialQuestion, onQu
   );
 };
 
-export default EnhancedChatInterface;
+export default ChatInterface;

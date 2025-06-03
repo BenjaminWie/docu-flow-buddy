@@ -3,26 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Github, Zap, FileText, Bot } from "lucide-react";
 import { useState } from "react";
-import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const HeroSection = () => {
-  const [localGithubUrl, setLocalGithubUrl] = useState("");
-  const { 
-    githubUrl, 
-    setGithubUrl, 
-    isAnalyzing, 
-    analysisStatus, 
-    progress, 
-    handleAnalyze 
-  } = useRepositoryAnalysis();
+  const [githubUrl, setGithubUrl] = useState("");
+  const navigate = useNavigate();
 
-  const handleQuickAnalyze = () => {
-    if (localGithubUrl.trim()) {
-      setGithubUrl(localGithubUrl);
-      handleAnalyze();
+  const handleAnalyze = () => {
+    if (githubUrl) {
+      navigate('/analyze', { state: { githubUrl } });
     } else {
-      // If no URL provided, just trigger the analysis flow
-      handleAnalyze();
+      navigate('/analyze');
+    }
+  };
+
+  const handleSampleAnalysis = async () => {
+    try {
+      const { data: copilotRepo } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('github_url', 'https://github.com/CopilotKit/CopilotKit')
+        .single();
+
+      if (copilotRepo) {
+        navigate(`/analysis/${copilotRepo.id}`);
+      }
+    } catch (error) {
+      console.error('Error fetching sample analysis:', error);
+      navigate('/analyze');
     }
   };
 
@@ -34,6 +43,7 @@ const HeroSection = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
       
+      {/* Floating elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 animate-float">
           <Github className="w-8 h-8 text-cyan-400 opacity-60" />
@@ -63,20 +73,6 @@ const HeroSection = () => {
             Paste your public repository URL and watch our AI analyze, understand, and document your codebase in <span className="text-cyan-400 font-semibold">minutes</span>.
           </p>
 
-          {/* Analysis Status */}
-          {isAnalyzing && (
-            <div className="max-w-2xl mx-auto mb-8 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-blue-300 mb-2">{analysisStatus}</p>
-              <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-gray-400 mt-2">{progress}% Complete</p>
-            </div>
-          )}
-
           {/* GitHub URL Input */}
           <div className="max-w-3xl mx-auto mb-12">
             <div className="flex flex-col sm:flex-row gap-4 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
@@ -85,22 +81,32 @@ const HeroSection = () => {
                 <Input
                   type="url"
                   placeholder="https://github.com/username/repository"
-                  value={localGithubUrl}
-                  onChange={(e) => setLocalGithubUrl(e.target.value)}
-                  disabled={isAnalyzing}
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
                   className="pl-10 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-14 text-lg"
                 />
               </div>
               <Button 
                 size="lg" 
-                onClick={handleQuickAnalyze}
-                disabled={isAnalyzing}
+                onClick={handleAnalyze}
                 className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 h-14 text-lg font-semibold group transition-all duration-300 transform hover:scale-105"
               >
-                {isAnalyzing ? 'Analyzing...' : 'Analyze Repository'}
-                {!isAnalyzing && <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+                Analyze Repository
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </div>
+          </div>
+
+          {/* Secondary CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={handleSampleAnalysis}
+              className="border-gray-400 text-gray-300 hover:bg-gray-800 px-8 py-4 text-lg"
+            >
+              See Sample Analysis
+            </Button>
           </div>
 
           {/* Trust indicators */}

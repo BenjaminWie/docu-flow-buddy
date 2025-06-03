@@ -1,15 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageCircle, Plus, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Search, MessageSquare, Plus, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import EnhancedQAItem from "./EnhancedQAItem";
-import EnhancedChatInterface from "./EnhancedChatInterface";
+import DevBusinessToggle from "./DevBusinessToggle";
+import QAItem from "./QAItem";
+import ChatInterface from "./ChatInterface";
 
-interface QA {
+interface QAData {
   id: string;
   question: string;
   answer: string | null;
@@ -17,227 +19,245 @@ interface QA {
   rating_score: number | null;
   view_mode: string | null;
   function_name: string;
-  content_format?: string;
-  external_links?: Array<{
-    title: string;
-    url: string;
-  }>;
-  analogy_content?: string;
+}
+
+interface ArchitectureDoc {
+  id: string;
+  section_type: string;
+  title: string;
+  content: string;
+  order_index: number;
+}
+
+interface BusinessExplanation {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  order_index: number;
 }
 
 interface ExplainCodeTabProps {
   repositoryId: string;
-  functionId: string;
-  functionName: string;
-  viewMode: 'dev' | 'business';
+  functionAnalyses: any[];
 }
 
-const ExplainCodeTab = ({ repositoryId, functionId, functionName, viewMode }: ExplainCodeTabProps) => {
+const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps) => {
   const { toast } = useToast();
-  const [qas, setQas] = useState<QA[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'dev' | 'business'>('dev');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [qaData, setQaData] = useState<QAData[]>([]);
+  const [architectureDocs, setArchitectureDocs] = useState<ArchitectureDoc[]>([]);
+  const [businessExplanations, setBusinessExplanations] = useState<BusinessExplanation[]>([]);
   const [showChat, setShowChat] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [chatQuestion, setChatQuestion] = useState('');
 
   useEffect(() => {
-    fetchQAs();
-  }, [repositoryId, functionId, viewMode]);
+    fetchQAData();
+    fetchArchitectureDocs();
+    fetchBusinessExplanations();
+  }, [repositoryId]);
 
-  const fetchQAs = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('function_qa')
-        .select('*')
-        .eq('repository_id', repositoryId)
-        .eq('function_id', functionId)
-        .eq('view_mode', viewMode)
-        .order('created_at', { ascending: false });
+  const fetchQAData = async () => {
+    const { data, error } = await supabase
+      .from('function_qa')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('rating_score', { ascending: false });
 
-      if (error) throw error;
-      setQas(data || []);
-    } catch (error) {
-      console.error('Error fetching Q&As:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load questions and answers",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error('Error fetching Q&A data:', error);
+    } else {
+      setQaData(data || []);
     }
   };
 
-  const generateQuestions = async () => {
-    setGenerating(true);
-    try {
-      const functionName = viewMode === 'dev' ? 'generate-dev-questions' : 'generate-business-questions';
-      
-      const { error } = await supabase.functions.invoke(functionName, {
-        body: {
-          repositoryId,
-          functionId,
-          functionName: functionName
-        }
+  const fetchArchitectureDocs = async () => {
+    const { data, error } = await supabase
+      .from('architecture_docs')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('order_index');
+
+    if (error) {
+      console.error('Error fetching architecture docs:', error);
+    } else {
+      setArchitectureDocs(data || []);
+    }
+  };
+
+  const fetchBusinessExplanations = async () => {
+    const { data, error } = await supabase
+      .from('business_explanations')
+      .select('*')
+      .eq('repository_id', repositoryId)
+      .order('order_index');
+
+    if (error) {
+      console.error('Error fetching business explanations:', error);
+    } else {
+      setBusinessExplanations(data || []);
+    }
+  };
+
+  const handleCreateQA = async (question: string, answer: string, questionType: string, mode: string) => {
+    const { error } = await supabase
+      .from('function_qa')
+      .insert({
+        repository_id: repositoryId,
+        function_id: 'general',
+        function_name: 'General',
+        question,
+        answer,
+        question_type: questionType,
+        view_mode: mode
       });
 
-      if (error) throw error;
-      
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create Q&A",
+        variant: "destructive"
+      });
+    } else {
+      fetchQAData();
       toast({
         title: "Success",
-        description: "New questions generated successfully",
-      });
-      
-      fetchQAs();
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate questions",
-        variant: "destructive"
-      });
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const createQuestion = async (question: string, answer: string, questionType: string, questionViewMode: string) => {
-    try {
-      const { error } = await supabase
-        .from('function_qa')
-        .insert({
-          repository_id: repositoryId,
-          function_id: functionId,
-          function_name: functionName,
-          question,
-          answer,
-          question_type: questionType,
-          view_mode: questionViewMode
-        });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Question created successfully",
-      });
-      
-      fetchQAs();
-    } catch (error) {
-      console.error('Error creating question:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create question",
-        variant: "destructive"
+        description: "Q&A created successfully",
       });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleChatStart = (question: string) => {
+    setChatQuestion(question);
+    setShowChat(true);
+  };
+
+  const filteredQA = qaData.filter(qa => {
+    const matchesSearch = qa.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         qa.function_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMode = viewMode === 'dev' ? qa.view_mode !== 'business' : qa.view_mode === 'business';
+    return matchesSearch && matchesMode;
+  });
+
+  // Convert architecture docs and business explanations to Q&A format for unified display
+  const convertedDocs = viewMode === 'business' 
+    ? businessExplanations.map(exp => ({
+        id: `business-${exp.id}`,
+        question: exp.question || exp.category,
+        answer: exp.answer,
+        question_type: 'business',
+        rating_score: 0,
+        view_mode: 'business',
+        function_name: 'Business Logic'
+      }))
+    : architectureDocs.map(doc => ({
+        id: `arch-${doc.id}`,
+        question: doc.title,
+        answer: doc.content,
+        question_type: 'architecture',
+        rating_score: 0,
+        view_mode: 'dev',
+        function_name: 'Architecture'
+      }));
+
+  const allQAData = [...filteredQA, ...convertedDocs];
 
   return (
     <div className="space-y-6">
-      {/* Header with actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">
-            {viewMode === 'dev' ? 'Developer' : 'Business'} Questions
-          </h3>
-          <Badge variant="outline">{qas.length} questions</Badge>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowChat(!showChat)}
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            {showChat ? 'Hide Chat' : 'Ask AI'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={generateQuestions}
-            disabled={generating}
-          >
-            {generating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Generate Questions
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchQAs}
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* Chat Interface */}
-      {showChat && (
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Assistant</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EnhancedChatInterface
-              repositoryId={repositoryId}
-              functionId={functionId}
-              onQuestionCreate={createQuestion}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Q&A List */}
-      <div className="space-y-4">
-        {qas.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                  No questions yet
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Generate questions or ask the AI to get started
-                </p>
-                <Button onClick={generateQuestions} disabled={generating}>
-                  {generating ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4 mr-2" />
-                  )}
-                  Generate Questions
-                </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Explain Me The Code
+          </CardTitle>
+          <p className="text-gray-600">
+            StackOverflow-like experience for understanding your codebase. Ask questions, get answers, and build knowledge.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4 flex-1">
+              <DevBusinessToggle mode={viewMode} onModeChange={setViewMode} />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search questions and answers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          qas.map((qa) => (
-            <EnhancedQAItem
-              key={qa.id}
-              qa={qa}
-              onAnswerUpdate={fetchQAs}
-              onChatStart={(question) => {
-                setShowChat(true);
-                // You could also pass the initial question to the chat interface
-              }}
-            />
-          ))
-        )}
-      </div>
+            </div>
+            <Button onClick={() => setShowChat(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Start Chat
+            </Button>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Q&A List */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                  {viewMode === 'dev' ? 'Developer' : 'Business'} Questions & Answers
+                </h3>
+                <Badge variant="outline">
+                  {allQAData.length} {allQAData.length === 1 ? 'item' : 'items'}
+                </Badge>
+              </div>
+
+              {allQAData.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No questions available yet.</p>
+                      <p className="text-sm">Start a chat to create your first Q&A.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {allQAData.map((qa) => (
+                    <QAItem
+                      key={qa.id}
+                      qa={qa}
+                      onAnswerUpdate={fetchQAData}
+                      onChatStart={handleChatStart}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Chat Interface */}
+            <div className="lg:col-span-1">
+              {showChat ? (
+                <ChatInterface
+                  repositoryId={repositoryId}
+                  initialQuestion={chatQuestion}
+                  onQuestionCreate={handleCreateQA}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-gray-500">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p className="mb-4">Start a conversation to get help understanding the code</p>
+                      <Button onClick={() => setShowChat(true)}>
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Start Chat
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

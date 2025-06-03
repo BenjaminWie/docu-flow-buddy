@@ -58,16 +58,9 @@ const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps
     section.functions.push(func);
     section.functionsCount++;
     
-    // Calculate overall complexity (highest complexity wins) - map database values to display values
-    const complexityMap: { [key: string]: 'simple' | 'moderate' | 'complex' } = {
-      'low': 'simple',
-      'medium': 'moderate', 
-      'high': 'complex'
-    };
-    
-    const mappedComplexity = complexityMap[func.complexity_level] || 'simple';
-    if (mappedComplexity === 'complex') section.complexity = 'complex';
-    else if (mappedComplexity === 'moderate' && section.complexity !== 'complex') {
+    // Calculate overall complexity (highest complexity wins)
+    if (func.complexity_level === 'complex') section.complexity = 'complex';
+    else if (func.complexity_level === 'moderate' && section.complexity !== 'complex') {
       section.complexity = 'moderate';
     }
     
@@ -83,26 +76,16 @@ const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps
   });
 
   const getComplexityColor = (level: string) => {
-    const complexityMap: { [key: string]: string } = {
-      'low': 'bg-green-100 text-green-800 border-green-200',
-      'medium': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'high': 'bg-red-100 text-red-800 border-red-200',
-      'simple': 'bg-green-100 text-green-800 border-green-200',
-      'moderate': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'complex': 'bg-red-100 text-red-800 border-red-200'
-    };
-    return complexityMap[level] || 'bg-gray-100 text-gray-800 border-gray-200';
+    switch (level) {
+      case 'simple': return 'bg-green-100 text-green-800 border-green-200';
+      case 'moderate': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'complex': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
   };
 
   const getComplexityIcon = (level: string) => {
-    const complexityMap: { [key: string]: 'simple' | 'moderate' | 'complex' } = {
-      'low': 'simple',
-      'medium': 'moderate',
-      'high': 'complex'
-    };
-    const mappedLevel = complexityMap[level] || level;
-    
-    switch (mappedLevel) {
+    switch (level) {
       case 'simple': return <CheckCircle className="w-4 h-4" />;
       case 'moderate': return <Clock className="w-4 h-4" />;
       case 'complex': return <AlertTriangle className="w-4 h-4" />;
@@ -110,19 +93,10 @@ const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps
     }
   };
 
-  const getDisplayComplexity = (level: string) => {
-    const complexityMap: { [key: string]: string } = {
-      'low': 'simple',
-      'medium': 'moderate',
-      'high': 'complex'
-    };
-    return complexityMap[level] || level;
-  };
-
   const totalFunctions = functions.length;
-  const complexFunctions = functions.filter(f => f.complexity_level === 'high').length;
-  const moderateFunctions = functions.filter(f => f.complexity_level === 'medium').length;
-  const simpleFunctions = functions.filter(f => f.complexity_level === 'low').length;
+  const complexFunctions = functions.filter(f => f.complexity_level === 'complex').length;
+  const moderateFunctions = functions.filter(f => f.complexity_level === 'moderate').length;
+  const simpleFunctions = functions.filter(f => f.complexity_level === 'simple').length;
 
   return (
     <div className="space-y-6">
@@ -234,7 +208,7 @@ const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps
                 <div className="space-y-2">
                   {section.functions
                     .sort((a, b) => {
-                      const complexityOrder = { high: 3, medium: 2, low: 1 };
+                      const complexityOrder = { complex: 3, moderate: 2, simple: 1 };
                       return complexityOrder[b.complexity_level as keyof typeof complexityOrder] - 
                              complexityOrder[a.complexity_level as keyof typeof complexityOrder];
                     })
@@ -252,7 +226,7 @@ const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps
                           <div className="font-medium">{func.function_name}</div>
                           <div className="text-sm text-gray-600">{func.description}</div>
                           <Badge className={`text-xs mt-1 ${getComplexityColor(func.complexity_level)}`}>
-                            {getDisplayComplexity(func.complexity_level)}
+                            {func.complexity_level}
                           </Badge>
                         </div>
                       </div>
