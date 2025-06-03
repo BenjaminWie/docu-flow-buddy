@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,9 @@ interface QAData {
   view_mode: string | null;
   function_name: string;
   tags?: string[];
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 interface ArchitectureDoc {
@@ -107,7 +111,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         answer,
         question_type: questionType,
         view_mode: mode,
-        tags: ['new', 'chat-generated']
+        tags: ['new', 'chat-generated'],
+        is_approved: false
       });
 
     if (error) {
@@ -135,11 +140,16 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
                          qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          qa.function_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          qa.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesMode = viewMode === 'dev' ? qa.view_mode !== 'business' : qa.view_mode === 'business';
+    
+    // Simplified filtering - remove duplicate category checking
+    const matchesMode = viewMode === 'business' ? 
+      (qa.view_mode === 'business' || qa.question_type === 'business') :
+      (qa.view_mode !== 'business' && qa.question_type !== 'business');
+    
     return matchesSearch && matchesMode;
   });
 
-  // Convert architecture docs and business explanations to Q&A format for unified display
+  // Convert docs to Q&A format for unified display
   const convertedDocs = viewMode === 'business' 
     ? businessExplanations.map(exp => ({
         id: `business-${exp.id}`,
@@ -149,7 +159,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         rating_score: 0,
         view_mode: 'business',
         function_name: 'Business Logic',
-        tags: ['business', 'documentation']
+        tags: ['business', 'documentation'],
+        is_approved: true
       }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
@@ -159,7 +170,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         rating_score: 0,
         view_mode: 'dev',
         function_name: 'Architecture',
-        tags: ['architecture', 'documentation']
+        tags: ['architecture', 'documentation'],
+        is_approved: true
       }));
 
   const allQAData = [...filteredQA, ...convertedDocs];

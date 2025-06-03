@@ -1,337 +1,362 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Send, Plus, Bot, User } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Send, Bot, User, Plus, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MarkdownRenderer from "./MarkdownRenderer";
 
-interface ChatMessage {
+interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
 }
 
-interface ChatConversation {
-  id: string;
-  title: string | null;
-  created_at: string;
-}
-
 interface ChatInterfaceProps {
   repositoryId: string;
-  functionId?: string;
   initialQuestion?: string;
   onQuestionCreate: (question: string, answer: string, questionType: string, viewMode: string) => void;
 }
 
-const ChatInterface = ({ repositoryId, functionId, initialQuestion, onQuestionCreate }: ChatInterfaceProps) => {
+const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }: ChatInterfaceProps) => {
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState(initialQuestion || '');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState(initialQuestion);
+  const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [showCreateQA, setShowCreateQA] = useState(false);
+  const [qaQuestion, setQaQuestion] = useState('');
+  const [qaAnswer, setQaAnswer] = useState('');
+  const [qaType, setQaType] = useState('technical');
+  const [qaMode, setQaMode] = useState('dev');
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchConversations();
-  }, [repositoryId]);
-
-  useEffect(() => {
-    if (initialQuestion && !activeConversation) {
-      startNewConversation(initialQuestion);
+    if (initialQuestion) {
+      setInputMessage(initialQuestion);
     }
   }, [initialQuestion]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
   }, [messages]);
 
-  const fetchConversations = async () => {
+  const createConversation = async () => {
     const { data, error } = await supabase
-      .from('chat_conversations')
-      .select('id, title, created_at')
-      .eq('repository_id', repositoryId)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching conversations:', error);
-    } else {
-      setConversations(data || []);
-    }
-  };
-
-  const fetchMessages = async (conversationId: string) => {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching messages:', error);
-    } else {
-      // Type-safe conversion from database to ChatMessage
-      const typedMessages: ChatMessage[] = (data || []).map(msg => ({
-        id: msg.id,
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        created_at: msg.created_at
-      }));
-      setMessages(typedMessages);
-    }
-  };
-
-  const startNewConversation = async (firstMessage?: string) => {
-    const message = firstMessage || inputMessage;
-    if (!message.trim()) return;
-
-    const { data: conversation, error } = await supabase
       .from('chat_conversations')
       .insert({
         repository_id: repositoryId,
-        function_id: functionId,
-        title: message.slice(0, 50) + (message.length > 50 ? '...' : ''),
-        conversation_type: functionId ? 'function_specific' : 'general'
+        conversation_type: 'general',
+        title: 'Chat Session'
       })
       .select()
       .single();
 
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create conversation",
-        variant: "destructive"
-      });
-      return;
+      console.error('Error creating conversation:', error);
+      return null;
     }
 
-    setActiveConversation(conversation.id);
-    await sendMessage(conversation.id, message);
-    fetchConversations();
-    if (!firstMessage) setInputMessage('');
+    return data.id;
   };
 
-  const sendMessage = async (conversationId: string, content: string) => {
-    if (!content.trim()) return;
+  const fetchContextualData = async () => {
+    // Fetch existing Q&A data to provide context to the AI
+    const { data: qaData } = await supabase
+      .from('function_qa')
+      .select('question, answer, function_name, question_type')
+      .eq('repository_id', repositoryId)
+      .not('answer', 'is', null)
+      .limit(10);
 
-    setIsLoading(true);
+    // Fetch function analyses for technical context
+    const { data: functionsData } = await supabase
+      .from('function_analyses')
+      .select('function_name, description, file_path')
+      .eq('repository_id', repositoryId)
+      .limit(5);
 
-    // Add user message
-    const { error: userMsgError } = await supabase
-      .from('chat_messages')
-      .insert({
-        conversation_id: conversationId,
-        role: 'user',
-        content
-      });
+    return {
+      existingQA: qaData || [],
+      functions: functionsData || []
+    };
+  };
 
-    if (userMsgError) {
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-      return;
-    }
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || loading) return;
 
-    // Get AI response
+    setLoading(true);
+    const userMessage = inputMessage;
+    setInputMessage('');
+
     try {
+      // Create conversation if it doesn't exist
+      let currentConversationId = conversationId;
+      if (!currentConversationId) {
+        currentConversationId = await createConversation();
+        setConversationId(currentConversationId);
+      }
+
+      // Add user message to UI
+      const newUserMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: userMessage,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newUserMessage]);
+
+      // Fetch contextual data
+      const context = await fetchContextualData();
+
+      // Save user message to database
+      await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: currentConversationId,
+          role: 'user',
+          content: userMessage
+        });
+
+      // Call the chat AI function with context
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
-          message: content,
-          conversationId,
+          message: userMessage,
+          conversationId: currentConversationId,
           repositoryId,
-          functionId
+          context: {
+            existingQA: context.existingQA,
+            functions: context.functions,
+            type: 'code-explanation'
+          }
         }
       });
 
       if (error) throw error;
 
-      // Add AI response
+      // Add AI response to UI
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`,
+        role: 'assistant',
+        content: data.response,
+        created_at: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Save AI response to database
       await supabase
         .from('chat_messages')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: currentConversationId,
           role: 'assistant',
           content: data.response
         });
 
-      fetchMessages(conversationId);
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to get AI response",
+        description: "Failed to send message",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!activeConversation) {
-      await startNewConversation();
-    } else {
-      await sendMessage(activeConversation, inputMessage);
-      setInputMessage('');
-    }
-  };
-
-  const createQAFromChat = async () => {
-    if (messages.length < 2) {
+  const handleCreateQA = async () => {
+    if (!qaQuestion.trim() || !qaAnswer.trim()) {
       toast({
         title: "Error",
-        description: "Need at least one question and answer to create Q&A",
+        description: "Please provide both question and answer",
         variant: "destructive"
       });
       return;
     }
 
-    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
-    const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
-
-    if (!lastUserMessage || !lastAssistantMessage) {
+    try {
+      await onQuestionCreate(qaQuestion, qaAnswer, qaType, qaMode);
+      setQaQuestion('');
+      setQaAnswer('');
+      setShowCreateQA(false);
+      toast({
+        title: "Success",
+        description: "Q&A created successfully",
+      });
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Need both question and answer to create Q&A",
+        description: "Failed to create Q&A",
         variant: "destructive"
       });
-      return;
     }
+  };
 
-    onQuestionCreate(
-      lastUserMessage.content,
-      lastAssistantMessage.content,
-      'general',
-      'dev'
-    );
-
-    toast({
-      title: "Success",
-      description: "Q&A created from chat conversation",
-    });
+  const populateFromLastExchange = () => {
+    if (messages.length >= 2) {
+      const lastUserMessage = messages[messages.length - 2];
+      const lastAiMessage = messages[messages.length - 1];
+      
+      if (lastUserMessage.role === 'user' && lastAiMessage.role === 'assistant') {
+        setQaQuestion(lastUserMessage.content);
+        setQaAnswer(lastAiMessage.content);
+        setShowCreateQA(true);
+      }
+    }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Conversation List */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Conversations</CardTitle>
-            <Button size="sm" onClick={() => startNewConversation()}>
+    <Card className="h-[600px] flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            AI Assistant
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={populateFromLastExchange}
+              disabled={messages.length < 2}
+            >
               <Plus className="w-4 h-4 mr-2" />
-              New Chat
+              Create Q&A
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`p-2 rounded cursor-pointer text-sm ${
-                  activeConversation === conv.id ? 'bg-blue-100' : 'hover:bg-gray-100'
-                }`}
-                onClick={() => {
-                  setActiveConversation(conv.id);
-                  fetchMessages(conv.id);
-                }}
-              >
-                {conv.title || 'Untitled Conversation'}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CardHeader>
 
-      {/* Chat Messages */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Chat</CardTitle>
-            {messages.length > 0 && (
-              <Button variant="outline" size="sm" onClick={createQAFromChat}>
-                Create Q&A
-              </Button>
+      <CardContent className="flex-1 flex flex-col gap-4 p-4">
+        <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
+          <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Ask me anything about the codebase!</p>
+                <p className="text-sm">I have access to existing Q&As and function analyses.</p>
+              </div>
             )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
+            
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex items-start gap-3 ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
               >
-                <div className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user' ? 'bg-blue-500' : 'bg-gray-500'
-                  }`}>
-                    {message.role === 'user' ? (
-                      <User className="w-4 h-4 text-white" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-white" />
-                    )}
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-blue-600" />
                   </div>
-                  <div className={`p-3 rounded-lg ${
-                    message.role === 'user' 
-                      ? 'bg-blue-500 text-white' 
+                )}
+                
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-900'
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
+                  }`}
+                >
+                  {message.role === 'assistant' ? (
+                    <MarkdownRenderer content={message.content} />
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
                 </div>
+                
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-gray-600" />
+                  </div>
+                )}
               </div>
             ))}
-            {isLoading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white" />
+            
+            {loading && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-blue-600" />
                 </div>
-                <div className="bg-gray-100 p-3 rounded-lg">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="bg-gray-100 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-gray-600">Thinking...</span>
                   </div>
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
+        </ScrollArea>
 
-          {/* Input */}
-          <div className="flex gap-2">
-            <Textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Ask a question about the code..."
-              className="min-h-[60px]"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-            <Button 
-              onClick={handleSendMessage}
-              disabled={isLoading || !inputMessage.trim()}
-              className="self-end"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Ask about the code..."
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+            disabled={loading}
+          />
+          <Button onClick={sendMessage} disabled={loading || !inputMessage.trim()}>
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {showCreateQA && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-sm">Create Q&A from Chat</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                placeholder="Question"
+                value={qaQuestion}
+                onChange={(e) => setQaQuestion(e.target.value)}
+              />
+              <Textarea
+                placeholder="Answer (Markdown supported)"
+                value={qaAnswer}
+                onChange={(e) => setQaAnswer(e.target.value)}
+                rows={4}
+              />
+              <div className="flex gap-2">
+                <select
+                  value={qaType}
+                  onChange={(e) => setQaType(e.target.value)}
+                  className="px-3 py-1 border rounded"
+                >
+                  <option value="technical">Technical</option>
+                  <option value="architecture">Architecture</option>
+                  <option value="business">Business</option>
+                </select>
+                <select
+                  value={qaMode}
+                  onChange={(e) => setQaMode(e.target.value)}
+                  className="px-3 py-1 border rounded"
+                >
+                  <option value="dev">Developer</option>
+                  <option value="business">Business</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleCreateQA}>Create Q&A</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowCreateQA(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
