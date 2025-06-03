@@ -21,13 +21,19 @@ interface Message {
 interface ChatInterfaceProps {
   repositoryId: string;
   initialQuestion?: string;
+  initialAnswer?: string;
   onQuestionCreate: (question: string, answer: string, questionType: string, viewMode: string) => void;
 }
 
-const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }: ChatInterfaceProps) => {
+const ChatInterface = ({ 
+  repositoryId, 
+  initialQuestion = '', 
+  initialAnswer = '',
+  onQuestionCreate 
+}: ChatInterfaceProps) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState(initialQuestion);
+  const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [showCreateQA, setShowCreateQA] = useState(false);
@@ -36,18 +42,50 @@ const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }:
   const [qaType, setQaType] = useState('technical');
   const [qaMode, setQaMode] = useState('dev');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialQuestion) {
-      setInputMessage(initialQuestion);
+    if (initialQuestion || initialAnswer) {
+      // Create initial context message when starting chat from Q&A
+      const contextMessage = createContextMessage(initialQuestion, initialAnswer);
+      setInputMessage(contextMessage);
     }
-  }, [initialQuestion]);
+  }, [initialQuestion, initialAnswer]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Auto-scroll to chat section when it becomes visible
+  useEffect(() => {
+    if ((initialQuestion || initialAnswer) && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
+  }, [initialQuestion, initialAnswer]);
+
+  const createContextMessage = (question: string, answer?: string) => {
+    if (question && answer) {
+      return `I have a question about this Q&A:
+
+**Question:** ${question}
+
+**Current Answer:** ${answer}
+
+I'd like to discuss this further or get more details.`;
+    } else if (question) {
+      return `I have a question: ${question}
+
+Can you help me understand this better?`;
+    }
+    return '';
+  };
 
   const createConversation = async () => {
     const { data, error } = await supabase
@@ -126,7 +164,7 @@ const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }:
           content: userMessage
         });
 
-      // Call the chat AI function with context
+      // Call the chat AI function with enhanced context
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
           message: userMessage,
@@ -135,7 +173,11 @@ const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }:
           context: {
             existingQA: context.existingQA,
             functions: context.functions,
-            type: 'code-explanation'
+            type: 'code-explanation',
+            initialQA: initialQuestion && initialAnswer ? {
+              question: initialQuestion,
+              answer: initialAnswer
+            } : null
           }
         }
       });
@@ -214,12 +256,17 @@ const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }:
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[600px] flex flex-col" ref={cardRef}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5" />
             AI Assistant
+            {(initialQuestion || initialAnswer) && (
+              <Badge variant="secondary" className="ml-2">
+                Q&A Context
+              </Badge>
+            )}
           </CardTitle>
           <div className="flex gap-2">
             <Button 
@@ -243,6 +290,13 @@ const ChatInterface = ({ repositoryId, initialQuestion = '', onQuestionCreate }:
                 <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Ask me anything about the codebase!</p>
                 <p className="text-sm">I have access to existing Q&As and function analyses.</p>
+                {(initialQuestion || initialAnswer) && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700 font-medium">
+                      Ready to discuss the Q&A context you provided
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             

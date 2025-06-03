@@ -291,13 +291,15 @@ export type Database = {
       function_qa: {
         Row: {
           answer: string | null
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           function_id: string
           function_name: string
           id: string
+          is_approved: boolean | null
           question: string
           question_type: string
-          rating_score: number | null
           repository_id: string
           source_chat_id: string | null
           tags: string[] | null
@@ -306,13 +308,15 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           function_id: string
           function_name: string
           id?: string
+          is_approved?: boolean | null
           question: string
           question_type: string
-          rating_score?: number | null
           repository_id: string
           source_chat_id?: string | null
           tags?: string[] | null
@@ -321,13 +325,15 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           function_id?: string
           function_name?: string
           id?: string
+          is_approved?: boolean | null
           question?: string
           question_type?: string
-          rating_score?: number | null
           repository_id?: string
           source_chat_id?: string | null
           tags?: string[] | null
@@ -347,38 +353,6 @@ export type Database = {
             columns: ["source_chat_id"]
             isOneToOne: false
             referencedRelation: "chat_conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      qa_ratings: {
-        Row: {
-          created_at: string
-          id: string
-          qa_id: string
-          rating: number
-          user_session: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          qa_id: string
-          rating: number
-          user_session: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          qa_id?: string
-          rating?: number
-          user_session?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "qa_ratings_qa_id_fkey"
-            columns: ["qa_id"]
-            isOneToOne: false
-            referencedRelation: "function_qa"
             referencedColumns: ["id"]
           },
         ]

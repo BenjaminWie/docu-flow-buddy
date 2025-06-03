@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { ChevronUp, ChevronDown, MessageSquare, Edit, X, Tag, Check, Trash2, Save } from "lucide-react";
+import { MessageSquare, Edit, X, Tag, Check, Trash2, Save, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -16,7 +16,6 @@ interface QAItemProps {
     question: string;
     answer: string | null;
     question_type: string;
-    rating_score: number | null;
     view_mode: string | null;
     tags?: string[];
     is_approved?: boolean;
@@ -24,15 +23,13 @@ interface QAItemProps {
     approved_at?: string;
   };
   onAnswerUpdate: () => void;
-  onChatStart: (question: string) => void;
+  onChatStart: (question: string, answer?: string) => void;
 }
 
 const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(!qa.answer);
   const [answerText, setAnswerText] = useState(qa.answer || '');
-  const [userVote, setUserVote] = useState<number | null>(null);
-  const [currentScore, setCurrentScore] = useState(qa.rating_score || 0);
   const [tags, setTags] = useState<string[]>(qa.tags || []);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [newTag, setNewTag] = useState('');
@@ -43,30 +40,6 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
     'java', 'spring', 'react', 'typescript', 'aws', 'docker',
     'high-priority', 'medium-priority', 'low-priority', 'refactoring'
   ];
-
-  useEffect(() => {
-    checkUserVote();
-  }, [qa.id]);
-
-  const checkUserVote = async () => {
-    const userSession = localStorage.getItem('userSession') || 
-      (() => {
-        const session = Math.random().toString(36).substring(7);
-        localStorage.setItem('userSession', session);
-        return session;
-      })();
-
-    const { data } = await supabase
-      .from('qa_ratings')
-      .select('rating')
-      .eq('qa_id', qa.id)
-      .eq('user_session', userSession)
-      .single();
-
-    if (data) {
-      setUserVote(data.rating);
-    }
-  };
 
   const handleSaveAnswer = async () => {
     if (!answerText.trim()) return;
@@ -118,6 +91,29 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
     }
   };
 
+  const handleDeleteQA = async () => {
+    if (!confirm('Are you sure you want to delete this entire Q&A? This action cannot be undone.')) return;
+
+    const { error } = await supabase
+      .from('function_qa')
+      .delete()
+      .eq('id', qa.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete Q&A",
+        variant: "destructive"
+      });
+    } else {
+      onAnswerUpdate();
+      toast({
+        title: "Success",
+        description: "Q&A deleted successfully",
+      });
+    }
+  };
+
   const handleDeleteAnswer = async () => {
     if (!confirm('Are you sure you want to delete this answer?')) return;
 
@@ -143,83 +139,6 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
     }
   };
 
-  const handleVoting = async (voteType: 'up' | 'down') => {
-    const userSession = localStorage.getItem('userSession') || 
-      (() => {
-        const session = Math.random().toString(36).substring(7);
-        localStorage.setItem('userSession', session);
-        return session;
-      })();
-
-    // Calculate new vote value
-    let newVote = 0;
-    if (voteType === 'up') {
-      newVote = userVote === 1 ? 0 : 1; // Toggle if already voted up, otherwise vote up
-    } else {
-      newVote = userVote === -1 ? 0 : -1; // Toggle if already voted down, otherwise vote down
-    }
-
-    // Update the vote in database
-    if (newVote === 0) {
-      // Remove vote
-      const { error } = await supabase
-        .from('qa_ratings')
-        .delete()
-        .eq('qa_id', qa.id)
-        .eq('user_session', userSession);
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to remove vote",
-          variant: "destructive"
-        });
-        return;
-      }
-    } else {
-      // Add or update vote
-      const { error } = await supabase
-        .from('qa_ratings')
-        .upsert({
-          qa_id: qa.id,
-          user_session: userSession,
-          rating: newVote
-        });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to submit vote",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-
-    // Calculate new total score
-    const { data: allVotes } = await supabase
-      .from('qa_ratings')
-      .select('rating')
-      .eq('qa_id', qa.id);
-
-    const totalScore = allVotes?.reduce((sum, vote) => sum + vote.rating, 0) || 0;
-
-    // Update the question's rating score
-    await supabase
-      .from('function_qa')
-      .update({ rating_score: totalScore })
-      .eq('id', qa.id);
-
-    setUserVote(newVote);
-    setCurrentScore(totalScore);
-    onAnswerUpdate();
-    
-    toast({
-      title: "Success",
-      description: newVote === 0 ? "Vote removed" : `Voted ${voteType}`,
-    });
-  };
-
   const handleAddTag = async () => {
     if (!newTag.trim() || tags.includes(newTag.trim())) return;
 
@@ -238,7 +157,7 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
         description: "Failed to add tag",
         variant: "destructive"
       });
-      setTags(tags); // Revert on error
+      setTags(tags);
     } else {
       onAnswerUpdate();
     }
@@ -259,7 +178,7 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
         description: "Failed to remove tag",
         variant: "destructive"
       });
-      setTags(tags); // Revert on error
+      setTags(tags);
     } else {
       onAnswerUpdate();
     }
@@ -321,7 +240,7 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
                         size="sm"
                         onClick={() => {
                           setNewTag(tag);
-                          handleAddTag();
+                          setTimeout(handleAddTag, 0);
                         }}
                         className="text-xs"
                       >
@@ -334,35 +253,23 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex flex-col items-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleVoting('up')}
-                  className={userVote === 1 ? 'text-green-600 bg-green-50' : 'hover:text-green-600'}
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </Button>
-                <div className="text-center px-2 py-1 rounded-md bg-gray-50">
-                  <div className="text-sm font-bold">{currentScore}</div>
-                  <div className="text-xs">votes</div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleVoting('down')}
-                  className={userVote === -1 ? 'text-red-600 bg-red-50' : 'hover:text-red-600'}
-                >
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-              </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChatStart(qa.question)}
+                onClick={() => onChatStart(qa.question, qa.answer || undefined)}
+                title="Continue this conversation in chat"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Chat
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteQA}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                title="Delete entire Q&A"
+              >
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -371,10 +278,15 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
             <div className={`border rounded-lg p-4 ${qa.is_approved ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  {qa.is_approved && (
-                    <Badge className="bg-green-100 text-green-800">
-                      <Check className="w-3 h-3 mr-1" />
+                  {qa.is_approved ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-300">
+                      <CheckCircle className="w-3 h-3 mr-1" />
                       Approved by Developer
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-orange-600 border-orange-300">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      Pending Approval
                     </Badge>
                   )}
                 </div>
@@ -383,14 +295,26 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleApproveAnswer}
-                    className={qa.is_approved ? 'text-green-600' : 'text-gray-500'}
+                    className={qa.is_approved ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}
+                    title={qa.is_approved ? 'Remove approval' : 'Approve this answer'}
                   >
-                    <Check className="w-4 h-4" />
+                    {qa.is_approved ? (
+                      <>
+                        <X className="w-4 h-4 mr-1" />
+                        Unapprove
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-1" />
+                        Approve
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditing(true)}
+                    title="Edit answer"
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
@@ -398,7 +322,8 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDeleteAnswer}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    title="Delete answer only"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

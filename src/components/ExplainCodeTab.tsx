@@ -12,7 +12,6 @@ interface QAData {
   question: string;
   answer: string | null;
   question_type: string;
-  rating_score: number | null;
   view_mode: string | null;
   function_name: string;
   tags?: string[];
@@ -51,6 +50,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
   const [businessExplanations, setBusinessExplanations] = useState<BusinessExplanation[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [chatQuestion, setChatQuestion] = useState('');
+  const [chatAnswer, setChatAnswer] = useState('');
 
   useEffect(() => {
     fetchQAData();
@@ -63,7 +63,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
       .from('function_qa')
       .select('*')
       .eq('repository_id', repositoryId)
-      .order('rating_score', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching Q&A data:', error);
@@ -130,8 +130,9 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
     }
   };
 
-  const handleChatStart = (question: string) => {
+  const handleChatStart = (question: string, answer?: string) => {
     setChatQuestion(question);
+    setChatAnswer(answer || '');
     setShowChat(true);
   };
 
@@ -141,7 +142,6 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
                          qa.function_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          qa.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Simplified filtering - remove duplicate category checking
     const matchesMode = viewMode === 'business' ? 
       (qa.view_mode === 'business' || qa.question_type === 'business') :
       (qa.view_mode !== 'business' && qa.question_type !== 'business');
@@ -156,7 +156,6 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question: exp.question || exp.category,
         answer: exp.answer,
         question_type: 'business',
-        rating_score: 0,
         view_mode: 'business',
         function_name: 'Business Logic',
         tags: ['business', 'documentation'],
@@ -167,7 +166,6 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         question: doc.title,
         answer: doc.content,
         question_type: 'architecture',
-        rating_score: 0,
         view_mode: 'dev',
         function_name: 'Architecture',
         tags: ['architecture', 'documentation'],
@@ -201,6 +199,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
             showChat={showChat}
             repositoryId={repositoryId}
             chatQuestion={chatQuestion}
+            chatAnswer={chatAnswer}
             onStartChat={() => setShowChat(true)}
             onQuestionCreate={handleCreateQA}
           />

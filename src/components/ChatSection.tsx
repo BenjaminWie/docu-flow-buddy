@@ -8,6 +8,7 @@ interface ChatSectionProps {
   showChat: boolean;
   repositoryId: string;
   chatQuestion: string;
+  chatAnswer?: string;
   onStartChat: () => void;
   onQuestionCreate: (question: string, answer: string, questionType: string, viewMode: string) => void;
 }
@@ -15,7 +16,8 @@ interface ChatSectionProps {
 const ChatSection = ({ 
   showChat, 
   repositoryId, 
-  chatQuestion, 
+  chatQuestion,
+  chatAnswer,
   onStartChat, 
   onQuestionCreate 
 }: ChatSectionProps) => {
@@ -25,6 +27,7 @@ const ChatSection = ({
         <ChatInterface
           repositoryId={repositoryId}
           initialQuestion={chatQuestion}
+          initialAnswer={chatAnswer}
           onQuestionCreate={onQuestionCreate}
         />
       ) : (
