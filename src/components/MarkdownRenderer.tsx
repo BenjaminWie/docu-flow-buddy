@@ -1,3 +1,4 @@
+
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -41,7 +42,7 @@ const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
               <div className="relative">
                 <SyntaxHighlighter
                   language={match[1]}
-                  style={oneDark}
+                  style={oneDark as any}
                   PreTag="div"
                   className="rounded-lg"
                   customStyle={{
