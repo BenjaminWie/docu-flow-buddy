@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Github, ArrowLeft, MessageSquare, FileText, Star, GitFork } from "lucide-react";
+import { Github, ArrowLeft, MessageSquare, FileText, Star, GitFork, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ExplainCodeTab from "@/components/ExplainCodeTab";
@@ -21,6 +21,7 @@ interface Repository {
   stars: number;
   forks: number;
   status: string;
+  analyzed_at?: string;
 }
 
 interface FunctionAnalysis {
@@ -34,30 +35,6 @@ interface FunctionAnalysis {
   usage_example: string;
   complexity_level: string;
   tags: string[];
-}
-
-interface ArchitectureDoc {
-  id: string;
-  section_type: string;
-  title: string;
-  content: string;
-  order_index: number;
-}
-
-interface BusinessExplanation {
-  id: string;
-  category: string;
-  question: string;
-  answer: string;
-  order_index: number;
-}
-
-interface CodeSection {
-  name: string;
-  path: string;
-  functions: FunctionAnalysis[];
-  complexity: 'simple' | 'moderate' | 'complex';
-  functionsCount: number;
 }
 
 const AnalysisResults = () => {
@@ -138,11 +115,11 @@ const AnalysisResults = () => {
         <div className="mb-8">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/analyze')}
+            onClick={() => navigate('/')}
             className="mb-4"
           >
             <ArrowLeft className="mr-2 w-4 h-4" />
-            Back to Analysis
+            Back to Home
           </Button>
           
           <Card>
@@ -152,9 +129,19 @@ const AnalysisResults = () => {
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
                     <Github className="w-8 h-8 text-white" />
                   </div>
-                  <div>
-                    <CardTitle className="text-2xl">{repository.owner}/{repository.name}</CardTitle>
-                    <p className="text-gray-600 mt-2">{repository.description}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <CardTitle className="text-2xl">{repository.owner}/{repository.name}</CardTitle>
+                      <a
+                        href={repository.github_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
+                    </div>
+                    <p className="text-gray-600 mt-2 max-w-3xl">{repository.description}</p>
                     <div className="flex items-center gap-4 mt-3">
                       <Badge variant="secondary">{repository.language}</Badge>
                       <div className="flex items-center gap-1 text-sm text-gray-600">
@@ -165,6 +152,11 @@ const AnalysisResults = () => {
                         <GitFork className="w-4 h-4" />
                         {repository.forks.toLocaleString()}
                       </div>
+                      {repository.analyzed_at && (
+                        <div className="text-sm text-gray-500">
+                          Analyzed on {new Date(repository.analyzed_at).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -176,7 +168,7 @@ const AnalysisResults = () => {
           </Card>
         </div>
 
-        {/* Redesigned Analysis Tabs */}
+        {/* Analysis Tabs */}
         <Tabs defaultValue="explain" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="explain" className="flex items-center gap-2">

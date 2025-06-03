@@ -20,14 +20,20 @@ const HeroSection = () => {
 
   const handleSampleAnalysis = async () => {
     try {
-      const { data: copilotRepo } = await supabase
+      // Get the first completed repository (OpenRewrite by default)
+      const { data: sampleRepo } = await supabase
         .from('repositories')
         .select('id')
-        .eq('github_url', 'https://github.com/CopilotKit/CopilotKit')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (copilotRepo) {
-        navigate(`/analysis/${copilotRepo.id}`);
+      if (sampleRepo) {
+        navigate(`/analysis/${sampleRepo.id}`);
+      } else {
+        // Fallback to analyze page if no completed repos
+        navigate('/analyze');
       }
     } catch (error) {
       console.error('Error fetching sample analysis:', error);

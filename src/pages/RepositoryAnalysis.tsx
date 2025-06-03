@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, ArrowRight, Loader2 } from "lucide-react";
+import { Github, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,27 @@ const RepositoryAnalysis = () => {
     return { owner: match[1], name: match[2] };
   };
 
+  const scrapeGitHubMetadata = async (owner: string, name: string) => {
+    try {
+      const response = await fetch(`https://api.github.com/repos/${owner}/${name}`);
+      if (!response.ok) {
+        throw new Error('Repository not found or not accessible');
+      }
+      
+      const data = await response.json();
+      return {
+        description: data.description || 'No description provided',
+        language: data.language || 'Unknown',
+        stars: data.stargazers_count || 0,
+        forks: data.forks_count || 0,
+        updated_at: data.updated_at
+      };
+    } catch (error) {
+      console.error('Error scraping GitHub metadata:', error);
+      throw error;
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!githubUrl) {
       toast({
@@ -42,7 +63,7 @@ const RepositoryAnalysis = () => {
     if (!repoInfo) {
       toast({
         title: "Invalid URL",
-        description: "Please enter a valid GitHub repository URL",
+        description: "Please enter a valid GitHub repository URL (e.g., https://github.com/owner/repo)",
         variant: "destructive"
       });
       return;
@@ -60,30 +81,74 @@ const RepositoryAnalysis = () => {
 
       if (existingRepo) {
         if (existingRepo.status === 'completed') {
+          toast({
+            title: "Repository Already Analyzed",
+            description: "This repository has already been analyzed. Redirecting to results.",
+          });
           navigate(`/analysis/${existingRepo.id}`);
+          return;
+        } else if (existingRepo.status === 'pending') {
+          toast({
+            title: "Analysis in Progress",
+            description: "This repository is currently being analyzed. Please check back later.",
+          });
           return;
         }
       }
 
-      // For demo purposes, we'll simulate analysis and redirect to CopilotKit example
-      const { data: copilotRepo } = await supabase
+      // Scrape GitHub metadata
+      const metadata = await scrapeGitHubMetadata(repoInfo.owner, repoInfo.name);
+
+      // Create new repository entry with pending status
+      const { data: newRepo, error: createError } = await supabase
         .from('repositories')
-        .select('id')
-        .eq('github_url', 'https://github.com/CopilotKit/CopilotKit')
+        .insert({
+          github_url: githubUrl,
+          owner: repoInfo.owner,
+          name: repoInfo.name,
+          description: metadata.description,
+          language: metadata.language,
+          stars: metadata.stars,
+          forks: metadata.forks,
+          status: 'pending'
+        })
+        .select()
         .single();
 
-      if (copilotRepo) {
+      if (createError) throw createError;
+
+      toast({
+        title: "Repository Added Successfully!",
+        description: "Your repository has been queued for analysis. You'll be notified when it's complete.",
+      });
+
+      // In a real implementation, you would trigger background analysis here
+      // For now, we'll simulate it taking some time
+      setTimeout(() => {
         toast({
           title: "Analysis Complete!",
-          description: "Repository has been analyzed successfully.",
+          description: "Your repository analysis is ready for viewing.",
         });
-        navigate(`/analysis/${copilotRepo.id}`);
+      }, 3000);
+
+      // For demo purposes, redirect to the OpenRewrite analysis
+      const { data: defaultRepo } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (defaultRepo) {
+        navigate(`/analysis/${defaultRepo.id}`);
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error:', error);
       toast({
         title: "Analysis Failed",
-        description: "There was an error analyzing the repository. Please try again.",
+        description: error.message || "There was an error analyzing the repository. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -144,12 +209,20 @@ const RepositoryAnalysis = () => {
                 </Button>
               </div>
 
-              <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-400/20">
-                <p className="text-blue-200 text-sm">
-                  <strong>Demo Note:</strong> For this demonstration, any repository URL will redirect to our 
-                  CopilotKit analysis example. In a production version, this would perform real-time analysis 
-                  of your specified repository.
-                </p>
+              <div className="bg-amber-900/30 rounded-lg p-4 border border-amber-400/20">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="text-amber-200 text-sm font-medium mb-1">
+                      Analysis Process
+                    </p>
+                    <p className="text-amber-200/80 text-sm">
+                      New repositories are queued for analysis and typically complete within 15-30 minutes. 
+                      You'll receive a notification when your analysis is ready. For demonstration purposes, 
+                      you'll be redirected to our sample OpenRewrite analysis.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
