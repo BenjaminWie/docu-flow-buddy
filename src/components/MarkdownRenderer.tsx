@@ -14,11 +14,13 @@ const MarkdownRenderer = ({ content, externalLinks = [] }: MarkdownRendererProps
     <div className="prose prose-sm max-w-none">
       <ReactMarkdown
         components={{
-          code({ node, inline, className, children, ...props }) {
+          code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
-            return !inline && match ? (
+            const isInline = !match;
+            
+            return !isInline ? (
               <SyntaxHighlighter
-                style={tomorrow}
+                style={tomorrow as any}
                 language={match[1]}
                 PreTag="div"
                 className="rounded-md"
