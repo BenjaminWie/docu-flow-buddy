@@ -2,15 +2,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { 
-  FileText, 
   Code, 
-  TestTube, 
   AlertTriangle, 
   CheckCircle, 
   Clock,
-  ChevronRight 
+  ChevronRight,
+  BookOpen
 } from "lucide-react";
 
 interface FunctionAnalysis {
@@ -36,10 +34,10 @@ interface CodeSection {
 
 interface FunctionOverviewProps {
   functions: FunctionAnalysis[];
-  onSectionClick: (section: CodeSection) => void;
+  onFunctionSelect: (functionAnalysis: FunctionAnalysis) => void;
 }
 
-const FunctionOverview = ({ functions, onSectionClick }: FunctionOverviewProps) => {
+const FunctionOverview = ({ functions, onFunctionSelect }: FunctionOverviewProps) => {
   // Group functions by file path and calculate section complexity
   const sections: CodeSection[] = functions.reduce((acc, func) => {
     const pathParts = func.file_path.split('/');
@@ -102,6 +100,32 @@ const FunctionOverview = ({ functions, onSectionClick }: FunctionOverviewProps) 
 
   return (
     <div className="space-y-6">
+      {/* Function Helper Introduction */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5" />
+            Integration Buddy - Function Helper
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 mb-4">
+            Your intelligent assistant for understanding, documenting, and working with code functions. 
+            Navigate through your codebase organized by complexity and get AI-powered help for documentation, testing, and business logic understanding.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-900 mb-2">What you can do:</h4>
+            <ul className="text-blue-800 text-sm space-y-1">
+              <li>• Browse functions organized by complexity and code sections</li>
+              <li>• Generate AI-powered documentation and tests</li>
+              <li>• Get business logic explanations for stakeholders</li>
+              <li>• View function code directly from GitHub</li>
+              <li>• Ask questions about function implementation</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Overview Stats */}
       <Card>
         <CardHeader>
@@ -156,14 +180,10 @@ const FunctionOverview = ({ functions, onSectionClick }: FunctionOverviewProps) 
       {/* Code Sections */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Code Sections (by Complexity)</h3>
-        <div className="grid gap-4">
+        <div className="space-y-4">
           {sortedSections.map((section) => (
-            <Card 
-              key={section.name} 
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => onSectionClick(section)}
-            >
-              <CardContent className="p-6">
+            <Card key={section.name}>
+              <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-lg border ${getComplexityColor(section.complexity)}`}>
@@ -182,7 +202,37 @@ const FunctionOverview = ({ functions, onSectionClick }: FunctionOverviewProps) 
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {section.functions
+                    .sort((a, b) => {
+                      const complexityOrder = { complex: 3, moderate: 2, simple: 1 };
+                      return complexityOrder[b.complexity_level as keyof typeof complexityOrder] - 
+                             complexityOrder[a.complexity_level as keyof typeof complexityOrder];
+                    })
+                    .map((func) => (
+                    <div 
+                      key={func.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => onFunctionSelect(func)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-1 rounded border ${getComplexityColor(func.complexity_level)}`}>
+                          {getComplexityIcon(func.complexity_level)}
+                        </div>
+                        <div>
+                          <div className="font-medium">{func.function_name}</div>
+                          <div className="text-sm text-gray-600">{func.description}</div>
+                          <Badge className={`text-xs mt-1 ${getComplexityColor(func.complexity_level)}`}>
+                            {func.complexity_level}
+                          </Badge>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

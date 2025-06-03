@@ -85,6 +85,53 @@ export type Database = {
           },
         ]
       }
+      documentation_proposals: {
+        Row: {
+          ai_generated_content: string | null
+          created_at: string
+          function_id: string
+          function_name: string
+          id: string
+          proposal_type: string
+          repository_id: string
+          status: string
+          updated_at: string
+          user_content: string | null
+        }
+        Insert: {
+          ai_generated_content?: string | null
+          created_at?: string
+          function_id: string
+          function_name: string
+          id?: string
+          proposal_type: string
+          repository_id: string
+          status?: string
+          updated_at?: string
+          user_content?: string | null
+        }
+        Update: {
+          ai_generated_content?: string | null
+          created_at?: string
+          function_id?: string
+          function_name?: string
+          id?: string
+          proposal_type?: string
+          repository_id?: string
+          status?: string
+          updated_at?: string
+          user_content?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentation_proposals_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       function_analyses: {
         Row: {
           complexity_level: string | null
@@ -131,6 +178,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "function_analyses_repository_id_fkey"
+            columns: ["repository_id"]
+            isOneToOne: false
+            referencedRelation: "repositories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      function_qa: {
+        Row: {
+          answer: string | null
+          created_at: string
+          function_id: string
+          function_name: string
+          id: string
+          question: string
+          question_type: string
+          repository_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          function_id: string
+          function_name: string
+          id?: string
+          question: string
+          question_type: string
+          repository_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          function_id?: string
+          function_name?: string
+          id?: string
+          question?: string
+          question_type?: string
+          repository_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "function_qa_repository_id_fkey"
             columns: ["repository_id"]
             isOneToOne: false
             referencedRelation: "repositories"

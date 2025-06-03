@@ -68,8 +68,8 @@ const AnalysisResults = () => {
   const [architectureDocs, setArchitectureDocs] = useState<ArchitectureDoc[]>([]);
   const [businessExplanations, setBusinessExplanations] = useState<BusinessExplanation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSection, setSelectedSection] = useState<CodeSection | null>(null);
-  const [view, setView] = useState<'overview' | 'section'>('overview');
+  const [selectedFunction, setSelectedFunction] = useState<FunctionAnalysis | null>(null);
+  const [view, setView] = useState<'overview' | 'function'>('overview');
 
   useEffect(() => {
     if (!id) return;
@@ -130,13 +130,13 @@ const AnalysisResults = () => {
     }
   };
 
-  const handleSectionClick = (section: CodeSection) => {
-    setSelectedSection(section);
-    setView('section');
+  const handleFunctionSelect = (functionAnalysis: FunctionAnalysis) => {
+    setSelectedFunction(functionAnalysis);
+    setView('function');
   };
 
   const handleBackToOverview = () => {
-    setSelectedSection(null);
+    setSelectedFunction(null);
     setView('overview');
   };
 
@@ -238,23 +238,15 @@ const AnalysisResults = () => {
 
           <TabsContent value="integration">
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Integration Buddy</CardTitle>
-                  <p className="text-gray-600">
-                    Hierarchical code analysis with complexity ranking and development tools
-                  </p>
-                </CardHeader>
-              </Card>
-              
               {view === 'overview' ? (
                 <FunctionOverview 
                   functions={functionAnalyses} 
-                  onSectionClick={handleSectionClick}
+                  onFunctionSelect={handleFunctionSelect}
                 />
-              ) : selectedSection ? (
+              ) : selectedFunction && repository ? (
                 <FunctionDetail 
-                  section={selectedSection} 
+                  functionData={selectedFunction}
+                  repository={repository}
                   onBack={handleBackToOverview}
                 />
               ) : null}
