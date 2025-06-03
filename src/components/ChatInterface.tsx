@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,7 +74,14 @@ const ChatInterface = ({ repositoryId, functionId, initialQuestion, onQuestionCr
     if (error) {
       console.error('Error fetching messages:', error);
     } else {
-      setMessages(data || []);
+      // Type-safe conversion from database to ChatMessage
+      const typedMessages: ChatMessage[] = (data || []).map(msg => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        created_at: msg.created_at
+      }));
+      setMessages(typedMessages);
     }
   };
 
