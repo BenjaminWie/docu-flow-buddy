@@ -354,15 +354,15 @@ validation:
 ### Real-World Safety Examples:
 
 **Spring Security Migration:**
-```
-✅ SAFE: @EnableWebSecurity annotation update
+\`\`\`
+[SAFE] @EnableWebSecurity annotation update
    - Semantic equivalent, widely tested pattern
    - 10,000+ successful applications in community
 
-⚠️  REVIEW: Custom authentication provider changes  
+[REVIEW] Custom authentication provider changes  
    - Business logic modification detected
    - Manual review recommended for security implications
-```
+\`\`\`
 
 **JUnit 4→5 Migration:**
 - **Automated**: 95% of test annotations and assertions
