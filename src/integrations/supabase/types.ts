@@ -155,6 +155,99 @@ export type Database = {
           },
         ]
       }
+      code_complexity_analysis: {
+        Row: {
+          business_description: string | null
+          cognitive_complexity: number | null
+          cognitive_load: number | null
+          combined_complexity_score: number | null
+          created_at: string | null
+          cyclomatic_complexity: number | null
+          developer_description: string | null
+          documentation_quality: number | null
+          documentation_score: number | null
+          end_line: number | null
+          explanation: string | null
+          file_url: string | null
+          function_length: number | null
+          function_name: string
+          github_url: string | null
+          id: number
+          language: string | null
+          llm_score: number | null
+          maintainability: number | null
+          nesting_depth: number | null
+          parameter_count: number | null
+          refactoring_urgency: number | null
+          related_functions_analyzed: number | null
+          semantic_complexity: number | null
+          start_line: number | null
+          suggestions: Json | null
+          total_complexity_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_description?: string | null
+          cognitive_complexity?: number | null
+          cognitive_load?: number | null
+          combined_complexity_score?: number | null
+          created_at?: string | null
+          cyclomatic_complexity?: number | null
+          developer_description?: string | null
+          documentation_quality?: number | null
+          documentation_score?: number | null
+          end_line?: number | null
+          explanation?: string | null
+          file_url?: string | null
+          function_length?: number | null
+          function_name: string
+          github_url?: string | null
+          id?: number
+          language?: string | null
+          llm_score?: number | null
+          maintainability?: number | null
+          nesting_depth?: number | null
+          parameter_count?: number | null
+          refactoring_urgency?: number | null
+          related_functions_analyzed?: number | null
+          semantic_complexity?: number | null
+          start_line?: number | null
+          suggestions?: Json | null
+          total_complexity_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_description?: string | null
+          cognitive_complexity?: number | null
+          cognitive_load?: number | null
+          combined_complexity_score?: number | null
+          created_at?: string | null
+          cyclomatic_complexity?: number | null
+          developer_description?: string | null
+          documentation_quality?: number | null
+          documentation_score?: number | null
+          end_line?: number | null
+          explanation?: string | null
+          file_url?: string | null
+          function_length?: number | null
+          function_name?: string
+          github_url?: string | null
+          id?: number
+          language?: string | null
+          llm_score?: number | null
+          maintainability?: number | null
+          nesting_depth?: number | null
+          parameter_count?: number | null
+          refactoring_urgency?: number | null
+          related_functions_analyzed?: number | null
+          semantic_complexity?: number | null
+          start_line?: number | null
+          suggestions?: Json | null
+          total_complexity_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       compliance_rules: {
         Row: {
           category: string

@@ -1,98 +1,110 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Github, Download } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Github, Sparkles } from "lucide-react";
+import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
+import { useNavigate } from "react-router-dom";
 
 const CTASection = () => {
-  const [githubUrl, setGithubUrl] = useState("");
+  const navigate = useNavigate();
+  const [githubUrl, setGithubUrl] = useState("https://github.com/openrewrite/rewrite");
+  const { analyzeRepository, isAnalyzing } = useRepositoryAnalysis();
 
-  const handleStartAnalysis = () => {
-    if (githubUrl) {
-      // TODO: Implement analysis logic
-      console.log("Starting analysis for:", githubUrl);
+  const handleAnalyze = async () => {
+    if (!githubUrl.trim()) return;
+    
+    try {
+      const repositoryId = await analyzeRepository(githubUrl);
+      if (repositoryId) {
+        navigate(`/analysis/${repositoryId}`);
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error);
     }
   };
 
   return (
-    <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 relative overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-transparent to-transparent"></div>
-      </div>
-
-      <div className="relative z-10 container mx-auto px-6">
+    <section className="py-20 bg-gradient-to-b from-blue-900 to-gray-900 min-h-screen flex items-center">
+      <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-2 mb-8">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <span className="text-cyan-300 text-sm font-medium">Ready to Try?</span>
+          </div>
+          
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            Ready to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Analyze</span> Your Repository?
+            Turn Code Confusion Into <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Crystal Clarity</span>
           </h2>
-          <p className="text-xl text-gray-300 mb-12 leading-relaxed">
-            Get instant insights into your codebase with AI-powered documentation and analysis
+          
+          <p className="text-xl text-gray-300 leading-relaxed mb-12 max-w-3xl mx-auto">
+            Start with the OpenRewrite repository or paste your own. See how Docu Buddy transforms complex code into understanding.
           </p>
 
-          {/* GitHub URL Input - Main CTA */}
-          <div className="max-w-4xl mx-auto mb-16">
-            <div className="flex flex-col lg:flex-row gap-4 p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+          {/* CTA Form */}
+          <div className="max-w-4xl mx-auto mb-12">
+            <div className="flex flex-col lg:flex-row gap-4 p-8 bg-white/5 backdrop-blur-md rounded-2xl border border-white/20">
               <div className="flex-1 relative">
                 <Github className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
                 <Input
                   type="url"
-                  placeholder="https://github.com/username/repository"
+                  placeholder="https://github.com/your-org/your-repo"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
                   className="pl-12 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-16 text-xl"
+                  disabled={isAnalyzing}
                 />
               </div>
               <Button 
                 size="lg" 
-                onClick={handleStartAnalysis}
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-10 py-6 h-16 text-xl font-semibold group transition-all duration-300 transform hover:scale-105"
+                onClick={handleAnalyze}
+                disabled={!githubUrl.trim() || isAnalyzing}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-12 py-6 h-16 text-xl font-semibold group transition-all duration-300 transform hover:scale-105"
               >
-                Start Analysis
-                <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                {isAnalyzing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                    Analyzing Repository...
+                  </>
+                ) : (
+                  <>
+                    Start Understanding
+                    <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
 
-          {/* Secondary CTA */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="border-gray-400 text-gray-300 hover:bg-gray-800 px-10 py-6 text-xl"
+          {/* What Happens Next */}
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+              <div className="text-2xl font-bold text-cyan-400 mb-2">1</div>
+              <h3 className="text-lg font-semibold text-white mb-2">AI Analysis</h3>
+              <p className="text-gray-400 text-sm">Docu Buddy scans your code and identifies complex functions</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+              <div className="text-2xl font-bold text-green-400 mb-2">2</div>
+              <h3 className="text-lg font-semibold text-white mb-2">Smart Documentation</h3>
+              <p className="text-gray-400 text-sm">Get explanations for the functions that actually need them</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
+              <div className="text-2xl font-bold text-orange-400 mb-2">3</div>
+              <h3 className="text-lg font-semibold text-white mb-2">Interactive Chat</h3>
+              <p className="text-gray-400 text-sm">Ask questions and get answers in plain language</p>
+            </div>
+          </div>
+
+          {/* Alternative Actions */}
+          <div className="mt-12 pt-8 border-t border-gray-700">
+            <p className="text-gray-400 mb-4">Or explore existing analyses</p>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/repositories')}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
-              <Download className="mr-3 w-6 h-6" />
-              See Sample Analysis Report
+              View All Repositories
             </Button>
-          </div>
-
-          {/* Features */}
-          <div className="border-t border-gray-700 pt-12">
-            <div className="grid md:grid-cols-3 gap-8 text-center">
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Instant Analysis</h3>
-                <p className="text-gray-400">Get results in minutes, not hours</p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">No Setup Required</h3>
-                <p className="text-gray-400">Just paste your GitHub URL and go</p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Privacy First</h3>
-                <p className="text-gray-400">We analyze, but never store your code</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact info */}
-          <div className="mt-12 text-center">
-            <p className="text-gray-400 mb-4">Questions about repository analysis?</p>
-            <div className="flex flex-wrap justify-center gap-6 text-sm">
-              <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Privacy Policy</a>
-              <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">How It Works</a>
-              <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Sample Reports</a>
-              <a href="#" className="text-cyan-400 hover:text-cyan-300 transition-colors">Contact Support</a>
-            </div>
           </div>
         </div>
       </div>

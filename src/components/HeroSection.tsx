@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Github, Database } from "lucide-react";
+import { ArrowRight, Github, Database, MessageSquare, FileSearch, TrendingDown } from "lucide-react";
 import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
 import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const [githubUrl, setGithubUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("https://github.com/openrewrite/rewrite");
   const { analyzeRepository, isAnalyzing } = useRepositoryAnalysis();
 
   const handleAnalyze = async () => {
@@ -46,22 +46,21 @@ const HeroSection = () => {
       <div className="relative z-10 container mx-auto px-6 text-center">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-8 leading-tight">
-            Turn Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Repository</span> Into Documentation Gold
+            Meet Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Code Understanding</span> Buddy
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
-            AI-powered code analysis that transforms complex repositories into clear, comprehensive documentation. 
-            Understand any codebase instantly.
+            Finally understand any codebase - whether you're a new dev getting up to speed or a business person asking "what does this actually do?"
           </p>
 
-          {/* Main CTA */}
+          {/* Demo CTA */}
           <div className="max-w-4xl mx-auto mb-16">
             <div className="flex flex-col lg:flex-row gap-4 p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
               <div className="flex-1 relative">
                 <Github className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
                 <Input
                   type="url"
-                  placeholder="https://github.com/username/repository"
+                  placeholder="Try with OpenRewrite repository"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
                   className="pl-12 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-16 text-xl"
@@ -81,7 +80,7 @@ const HeroSection = () => {
                   </>
                 ) : (
                   <>
-                    Start Analysis
+                    Try Docu Buddy
                     <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -89,19 +88,22 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Key Features */}
+          {/* Core Value Props */}
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
-              <h3 className="text-xl font-semibold text-white mb-3">Instant Analysis</h3>
-              <p className="text-gray-400">Get comprehensive documentation in minutes, not hours</p>
+              <MessageSquare className="w-8 h-8 text-cyan-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-3">Chat with Your Code</h3>
+              <p className="text-gray-400">Ask questions in plain language, get answers that make sense</p>
             </div>
             <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
-              <h3 className="text-xl font-semibold text-white mb-3">AI-Powered Insights</h3>
-              <p className="text-gray-400">Understand complex business logic and architecture patterns</p>
+              <FileSearch className="w-8 h-8 text-green-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-3">Smart Documentation</h3>
+              <p className="text-gray-400">Documents only the complex functions that actually need explaining</p>
             </div>
             <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
-              <h3 className="text-xl font-semibold text-white mb-3">Interactive Q&A</h3>
-              <p className="text-gray-400">Ask questions about your code and get intelligent answers</p>
+              <TrendingDown className="w-8 h-8 text-orange-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-3">Technical Debt Clarity</h3>
+              <p className="text-gray-400">See the gap between where your code is and where it should be</p>
             </div>
           </div>
         </div>
