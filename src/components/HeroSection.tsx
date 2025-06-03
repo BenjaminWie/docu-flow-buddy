@@ -2,14 +2,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Github, ArrowDown } from "lucide-react";
+import { ArrowRight, Github, Database } from "lucide-react";
 import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
+import { useNavigate } from "react-router-dom";
 
-interface HeroSectionProps {
-  onRepositoryAnalyzed: (repositoryId: string) => void;
-}
-
-const HeroSection = ({ onRepositoryAnalyzed }: HeroSectionProps) => {
+const HeroSection = () => {
+  const navigate = useNavigate();
   const [githubUrl, setGithubUrl] = useState("");
   const { analyzeRepository, isAnalyzing } = useRepositoryAnalysis();
 
@@ -19,22 +17,10 @@ const HeroSection = ({ onRepositoryAnalyzed }: HeroSectionProps) => {
     try {
       const repositoryId = await analyzeRepository(githubUrl);
       if (repositoryId) {
-        onRepositoryAnalyzed(repositoryId);
-        // Scroll to analysis section
-        const analysisSection = document.getElementById('analysis');
-        if (analysisSection) {
-          analysisSection.scrollIntoView({ behavior: 'smooth' });
-        }
+        navigate(`/analysis/${repositoryId}`);
       }
     } catch (error) {
       console.error('Analysis failed:', error);
-    }
-  };
-
-  const scrollToRepositories = () => {
-    const repositoriesSection = document.getElementById('repositories');
-    if (repositoriesSection) {
-      repositoriesSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -43,6 +29,18 @@ const HeroSection = ({ onRepositoryAnalyzed }: HeroSectionProps) => {
       {/* Background effects */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-600 via-transparent to-transparent"></div>
+      </div>
+
+      {/* Navigation */}
+      <div className="absolute top-6 right-6 z-10">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/repositories')}
+          className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+        >
+          <Database className="w-4 h-4 mr-2" />
+          View All Repositories
+        </Button>
       </div>
 
       <div className="relative z-10 container mx-auto px-6 text-center">
@@ -92,7 +90,7 @@ const HeroSection = ({ onRepositoryAnalyzed }: HeroSectionProps) => {
           </div>
 
           {/* Key Features */}
-          <div className="grid md:grid-cols-3 gap-8 text-center mb-12">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10">
               <h3 className="text-xl font-semibold text-white mb-3">Instant Analysis</h3>
               <p className="text-gray-400">Get comprehensive documentation in minutes, not hours</p>
@@ -105,18 +103,6 @@ const HeroSection = ({ onRepositoryAnalyzed }: HeroSectionProps) => {
               <h3 className="text-xl font-semibold text-white mb-3">Interactive Q&A</h3>
               <p className="text-gray-400">Ask questions about your code and get intelligent answers</p>
             </div>
-          </div>
-
-          {/* View Repositories Button */}
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={scrollToRepositories}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <ArrowDown className="w-4 h-4 mr-2" />
-              View All Repositories
-            </Button>
           </div>
         </div>
       </div>

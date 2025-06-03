@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   ExternalLink,
   RefreshCw
 } from "lucide-react";
-import GitHubCodePreview from "./GitHubCodePreview";
 
 interface FunctionAnalysis {
   id: string;
@@ -67,12 +67,15 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
   const [loading, setLoading] = useState<string | null>(null);
   const [proposals, setProposals] = useState<DocumentationProposal[]>([]);
   const [questions, setQuestions] = useState<FunctionQA[]>([]);
+  const [githubCode, setGithubCode] = useState<string>('');
+  const [githubUrl, setGithubUrl] = useState<string>('');
   const [userContent, setUserContent] = useState<{ [key: string]: string }>({});
   const [answerInput, setAnswerInput] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchProposals();
     fetchQuestions();
+    fetchGithubCode();
   }, [functionData.id]);
 
   const fetchProposals = async () => {
@@ -130,6 +133,30 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
       });
     } finally {
       setLoading(null);
+    }
+  };
+
+  const fetchGithubCode = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-github-code', {
+        body: {
+          githubUrl: repository.github_url,
+          filePath: functionData.file_path,
+          functionName: functionData.function_name
+        }
+      });
+
+      if (error) throw error;
+
+      setGithubCode(data.content);
+      setGithubUrl(data.githubUrl);
+    } catch (error) {
+      console.error('Error fetching GitHub code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch code from GitHub",
+        variant: "destructive"
+      });
     }
   };
 
@@ -249,6 +276,15 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
                 <Badge variant="outline">{functionData.file_path}</Badge>
               </div>
             </div>
+            {githubUrl && (
+              <Button variant="outline" asChild>
+                <a href={githubUrl} target="_blank" rel="noopener noreferrer">
+                  <Github className="w-4 h-4 mr-2" />
+                  View on GitHub
+                  <ExternalLink className="w-3 h-3 ml-1" />
+                </a>
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -276,12 +312,22 @@ const FunctionDetail = ({ functionData, repository, onBack }: FunctionDetailProp
         </CardContent>
       </Card>
 
-      {/* GitHub Code Preview */}
-      <GitHubCodePreview
-        githubUrl={repository.github_url}
-        filePath={functionData.file_path}
-        functionName={functionData.function_name}
-      />
+      {/* GitHub Code View */}
+      {githubCode && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Github className="w-5 h-5" />
+              Function Implementation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-gray-900 text-green-400 p-4 rounded overflow-x-auto text-sm">
+              {githubCode}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action Buttons */}
       <div className="grid md:grid-cols-3 gap-4">
