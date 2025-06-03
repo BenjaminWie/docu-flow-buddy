@@ -5,16 +5,140 @@ import { ArrowRight, Github, Zap, FileText, Bot } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const HeroSection = () => {
   const [githubUrl, setGithubUrl] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleAnalyze = () => {
-    if (githubUrl) {
-      navigate('/analyze', { state: { githubUrl } });
-    } else {
+  const validateGithubUrl = (url: string) => {
+    const githubRegex = /^https:\/\/github\.com\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_\.]+\/?$/;
+    return githubRegex.test(url);
+  };
+
+  const extractRepoInfo = (url: string) => {
+    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (match) {
+      return {
+        owner: match[1],
+        name: match[2].replace(/\.git$/, '')
+      };
+    }
+    return null;
+  };
+
+  const handleAnalyze = async () => {
+    if (!githubUrl) {
       navigate('/analyze');
+      return;
+    }
+
+    if (!validateGithubUrl(githubUrl)) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid GitHub repository URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const repoInfo = extractRepoInfo(githubUrl);
+    if (!repoInfo) {
+      toast({
+        title: "Invalid URL",
+        description: "Could not extract repository information from URL",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      // Check if repository already exists
+      const { data: existingRepo } = await supabase
+        .from('repositories')
+        .select('*')
+        .eq('github_url', githubUrl)
+        .single();
+
+      if (existingRepo && existingRepo.status === 'completed') {
+        toast({
+          title: "Repository Already Analyzed",
+          description: "This repository has already been analyzed. Redirecting to results...",
+        });
+        navigate(`/analysis/${existingRepo.id}`);
+        return;
+      }
+
+      let repositoryId = existingRepo?.id;
+
+      if (!existingRepo) {
+        // Create new repository entry
+        const { data: newRepo, error } = await supabase
+          .from('repositories')
+          .insert({
+            github_url: githubUrl,
+            owner: repoInfo.owner,
+            name: repoInfo.name,
+            status: 'analyzing'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        repositoryId = newRepo.id;
+      } else {
+        // Update existing repository to analyzing status
+        await supabase
+          .from('repositories')
+          .update({ status: 'analyzing' })
+          .eq('id', existingRepo.id);
+      }
+
+      // Start the real analysis by calling the scrape-github-repo function
+      const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('scrape-github-repo', {
+        body: { githubUrl }
+      });
+
+      if (scrapeError) throw scrapeError;
+
+      if (scrapeResult.success) {
+        // Update repository with metadata from GitHub
+        await supabase
+          .from('repositories')
+          .update({
+            description: scrapeResult.metadata.description,
+            language: scrapeResult.metadata.language,
+            stars: scrapeResult.metadata.stars,
+            forks: scrapeResult.metadata.forks,
+            status: 'completed',
+            analyzed_at: new Date().toISOString()
+          })
+          .eq('id', repositoryId);
+
+        toast({
+          title: "Analysis Complete",
+          description: "Repository has been successfully analyzed!",
+        });
+
+        // Navigate to analysis results
+        navigate(`/analysis/${repositoryId}`);
+      } else {
+        throw new Error(scrapeResult.error || 'Analysis failed');
+      }
+
+    } catch (error) {
+      console.error('Error analyzing repository:', error);
+      toast({
+        title: "Analysis Failed",
+        description: error.message || "Failed to analyze repository. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -49,7 +173,6 @@ const HeroSection = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
       
-      {/* Floating elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 animate-float">
           <Github className="w-8 h-8 text-cyan-400 opacity-60" />
@@ -89,16 +212,18 @@ const HeroSection = () => {
                   placeholder="https://github.com/username/repository"
                   value={githubUrl}
                   onChange={(e) => setGithubUrl(e.target.value)}
+                  disabled={isAnalyzing}
                   className="pl-10 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-14 text-lg"
                 />
               </div>
               <Button 
                 size="lg" 
                 onClick={handleAnalyze}
+                disabled={isAnalyzing}
                 className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 h-14 text-lg font-semibold group transition-all duration-300 transform hover:scale-105"
               >
-                Analyze Repository
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {isAnalyzing ? 'Analyzing...' : 'Analyze Repository'}
+                {!isAnalyzing && <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </Button>
             </div>
           </div>

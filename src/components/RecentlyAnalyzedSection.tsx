@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Github, Star, GitFork, Calendar, ArrowRight } from "lucide-react";
+import { Github, Star, GitFork, Calendar, ArrowRight, Clock, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -18,6 +18,7 @@ interface Repository {
   forks: number;
   analyzed_at: string;
   status: string;
+  created_at: string;
 }
 
 const RecentlyAnalyzedSection = () => {
@@ -34,9 +35,8 @@ const RecentlyAnalyzedSection = () => {
       const { data, error } = await supabase
         .from('repositories')
         .select('*')
-        .eq('status', 'completed')
-        .order('analyzed_at', { ascending: false })
-        .limit(6);
+        .order('created_at', { ascending: false })
+        .limit(8);
 
       if (error) throw error;
       setRepositories(data || []);
@@ -53,6 +53,42 @@ const RecentlyAnalyzedSection = () => {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Completed
+          </Badge>
+        );
+      case 'analyzing':
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            <Clock className="w-3 h-3 mr-1" />
+            Analyzing
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="outline" className="text-gray-600">
+            <Clock className="w-3 h-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
+  const canViewAnalysis = (repo: Repository) => {
+    return repo.status === 'completed';
   };
 
   if (loading) {
@@ -73,7 +109,30 @@ const RecentlyAnalyzedSection = () => {
   }
 
   if (repositories.length === 0) {
-    return null;
+    return (
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Repository Analysis
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Start by analyzing your first repository to see the power of AI-driven code documentation.
+            </p>
+          </div>
+          <div className="text-center">
+            <Button
+              size="lg"
+              onClick={() => navigate('/analyze')}
+              className="px-8 py-3"
+            >
+              Analyze Your First Repository
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -81,10 +140,10 @@ const RecentlyAnalyzedSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Recently Analyzed Repositories
+            Repository Analysis Dashboard
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Explore documentation and insights from repositories that have been analyzed with our AI-powered system.
+            Track your analyzed repositories and explore comprehensive documentation and insights.
           </p>
         </div>
 
@@ -97,9 +156,14 @@ const RecentlyAnalyzedSection = () => {
                     <Github className="w-5 h-5 text-gray-600" />
                     <span className="text-sm text-gray-600">{repo.owner}</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {repo.language}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {repo.language && (
+                      <Badge variant="outline" className="text-xs">
+                        {repo.language}
+                      </Badge>
+                    )}
+                    {getStatusBadge(repo.status)}
+                  </div>
                 </div>
                 <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
                   {repo.name}
@@ -107,21 +171,25 @@ const RecentlyAnalyzedSection = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {repo.description}
+                  {repo.description || 'No description available'}
                 </p>
                 
                 <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4" />
-                    {repo.stars.toLocaleString()}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <GitFork className="w-4 h-4" />
-                    {repo.forks.toLocaleString()}
-                  </div>
+                  {repo.stars > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4" />
+                      {repo.stars.toLocaleString()}
+                    </div>
+                  )}
+                  {repo.forks > 0 && (
+                    <div className="flex items-center gap-1">
+                      <GitFork className="w-4 h-4" />
+                      {repo.forks.toLocaleString()}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {formatDate(repo.analyzed_at)}
+                    {formatDate(repo.analyzed_at || repo.created_at)}
                   </div>
                 </div>
 
@@ -129,9 +197,18 @@ const RecentlyAnalyzedSection = () => {
                   variant="outline"
                   size="sm"
                   className="w-full group-hover:bg-blue-50 group-hover:border-blue-200"
-                  onClick={() => navigate(`/analysis/${repo.id}`)}
+                  onClick={() => {
+                    if (canViewAnalysis(repo)) {
+                      navigate(`/analysis/${repo.id}`);
+                    } else {
+                      navigate('/analyze');
+                    }
+                  }}
+                  disabled={repo.status === 'analyzing'}
                 >
-                  View Analysis
+                  {repo.status === 'completed' ? 'View Analysis' : 
+                   repo.status === 'analyzing' ? 'Analysis in Progress...' : 
+                   'Continue Analysis'}
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </CardContent>
@@ -146,7 +223,7 @@ const RecentlyAnalyzedSection = () => {
             onClick={() => navigate('/analyze')}
             className="px-8 py-3"
           >
-            Analyze Your Repository
+            Analyze Another Repository
             <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
         </div>
