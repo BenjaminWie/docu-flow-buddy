@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import DevBusinessToggle from "./DevBusinessToggle";
 import QAItem from "./QAItem";
 import ChatInterface from "./ChatInterface";
+import SeedDataButton from "./SeedDataButton";
 
 interface QAData {
   id: string;
@@ -177,6 +177,11 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
           </p>
         </CardHeader>
         <CardContent>
+          {/* Add seed button for demonstration */}
+          {repositoryId === 'cbb24b3f-1590-40fa-91e5-b0ba660d2a6b' && (
+            <SeedDataButton />
+          )}
+          
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4 flex-1">
               <DevBusinessToggle mode={viewMode} onModeChange={setViewMode} />
