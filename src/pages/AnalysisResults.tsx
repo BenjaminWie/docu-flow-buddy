@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -178,10 +177,7 @@ const AnalysisResults = () => {
           </TabsContent>
 
           <TabsContent value="document">
-            <DocumentCodeTab 
-              functions={functionAnalyses} 
-              repository={repository}
-            />
+            <DocumentCodeTab repositoryId={repository.id} />
           </TabsContent>
 
           <TabsContent value="debt">
