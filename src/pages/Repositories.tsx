@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Github, Star, GitFork, Calendar, ExternalLink } from "lucide-react";
+import { Search, Github, Star, GitFork, Calendar, ExternalLink, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -82,6 +82,16 @@ const Repositories = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="container mx-auto">
         <div className="mb-8">
+          {/* Back to Home Button */}
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/')}
+            className="mb-4"
+          >
+            <Home className="mr-2 w-4 h-4" />
+            Back to Home
+          </Button>
+          
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             Repository Analysis Dashboard
           </h1>

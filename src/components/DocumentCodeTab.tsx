@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Database, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import CriticalFunctionDashboard from "./CriticalFunctionDashboard";
 import ComplexFunctionDetail from "./ComplexFunctionDetail";
+
 interface ComplexFunction {
   id: number;
   function_name: string;
@@ -24,42 +26,47 @@ interface ComplexFunction {
   rule_function_length: number;
   rule_nesting_depth: number;
   rule_parameter_count: number;
+  rule_score: number;
 }
+
 interface DocumentCodeTabProps {
   repositoryId: string;
 }
-const DocumentCodeTab = ({
-  repositoryId
-}: DocumentCodeTabProps) => {
+
+const DocumentCodeTab = ({ repositoryId }: DocumentCodeTabProps) => {
   const [selectedFunction, setSelectedFunction] = useState<ComplexFunction | null>(null);
   const [view, setView] = useState<'dashboard' | 'function'>('dashboard');
   const [functionsCount, setFunctionsCount] = useState(0);
+
   useEffect(() => {
     fetchFunctionsCount();
   }, [repositoryId]);
+
   const fetchFunctionsCount = async () => {
     try {
-      const {
-        count,
-        error
-      } = await supabase.from('function_complexity').select('*', {
-        count: 'exact'
-      });
+      const { count, error } = await supabase
+        .from('function_complexity')
+        .select('*', { count: 'exact' });
+      
       if (error) throw error;
       setFunctionsCount(count || 0);
     } catch (error) {
       console.error('Error fetching functions count:', error);
     }
   };
+
   const handleFunctionSelect = (functionData: ComplexFunction) => {
     setSelectedFunction(functionData);
     setView('function');
   };
+
   const handleBackToDashboard = () => {
     setSelectedFunction(null);
     setView('dashboard');
   };
-  return <div className="space-y-6">
+
+  return (
+    <div className="space-y-6">
       {/* Header Card */}
       <Card className="bg-gradient-to-r from-purple-50 via-blue-50 to-green-50 border-none">
         <CardHeader>
@@ -100,15 +107,23 @@ const DocumentCodeTab = ({
               </ul>
             </div>
           </div>
-
-          
         </CardContent>
       </Card>
 
       {/* Main Content */}
       <div className="space-y-6">
-        {view === 'dashboard' ? <CriticalFunctionDashboard onFunctionSelect={handleFunctionSelect} /> : selectedFunction ? <ComplexFunctionDetail functionData={selectedFunction} repositoryId={repositoryId} onBack={handleBackToDashboard} /> : null}
+        {view === 'dashboard' ? (
+          <CriticalFunctionDashboard onFunctionSelect={handleFunctionSelect} />
+        ) : selectedFunction ? (
+          <ComplexFunctionDetail
+            functionData={selectedFunction}
+            repositoryId={repositoryId}
+            onBack={handleBackToDashboard}
+          />
+        ) : null}
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default DocumentCodeTab;

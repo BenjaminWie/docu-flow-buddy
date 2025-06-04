@@ -190,18 +190,18 @@ const SolutionSection = () => {
                 </div>
               </div>
               
-              {/* CTA Button */}
+              {/* CTA Button - Navigate to repositories page instead of hardcoded ID */}
               <div className="text-center">
                 <Button 
                   size="lg"
-                  onClick={() => window.location.href = '/analysis/openrewrite-rewrite'}
+                  onClick={() => window.location.href = '/repositories'}
                   className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-8 py-4 text-lg font-semibold group transition-all duration-300 transform hover:scale-105"
                 >
-                  View OpenRewrite Analysis
+                  View Repository Analysis
                   <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <p className="text-gray-400 text-sm mt-3">
-                  Explore the complete analysis in under 30 seconds
+                  Explore complete analysis results
                 </p>
               </div>
             </CardContent>

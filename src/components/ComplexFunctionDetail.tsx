@@ -28,7 +28,7 @@ interface ComplexFunction {
   start_line: number;
   end_line: number;
   language: string;
-  combined_complexity_score: number;
+  rule_score: number;
   llm_business_description: string;
   llm_developer_description: string;
   llm_maintainability: number;
@@ -90,9 +90,9 @@ const ComplexFunctionDetail = ({ functionData, repositoryId, onBack }: ComplexFu
   };
 
   const getPriorityLevel = (score: number) => {
-    if (score >= 80) return 'critical';
-    if (score >= 60) return 'high';
-    if (score >= 40) return 'medium';
+    if (score >= 1000) return 'critical';
+    if (score >= 600) return 'high';
+    if (score >= 300) return 'medium';
     return 'low';
   };
 
@@ -114,7 +114,7 @@ const ComplexFunctionDetail = ({ functionData, repositoryId, onBack }: ComplexFu
     }
   };
 
-  const priority = getPriorityLevel(functionData.combined_complexity_score);
+  const priority = getPriorityLevel(functionData.rule_score || 0);
 
   const getBusinessMetrics = () => {
     const urgency = functionData.llm_refactoring_urgency || 0;
@@ -170,7 +170,7 @@ const ComplexFunctionDetail = ({ functionData, repositoryId, onBack }: ComplexFu
                     {priority.toUpperCase()} PRIORITY
                   </Badge>
                   <Badge variant="outline">
-                    Complexity Score: {Math.round(functionData.combined_complexity_score)}
+                    Rule Score: {Math.round(functionData.rule_score || 0)}
                   </Badge>
                 </div>
               </div>

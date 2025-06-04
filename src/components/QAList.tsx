@@ -8,23 +8,34 @@ interface QAData {
   id: string;
   question: string;
   answer: string | null;
-  question_type: string;
-  view_mode: string | null;
-  function_name: string;
+  ai_response_style: 'business' | 'developer';
+  function_name?: string;
+  created_at: string;
   tags?: string[];
-  is_approved?: boolean;
-  approved_by?: string;
-  approved_at?: string;
 }
 
 interface QAListProps {
   viewMode: 'dev' | 'business';
   qaData: QAData[];
+  repositoryId: string;
   onAnswerUpdate: () => void;
-  onChatStart: (question: string) => void;
+  onChatStart: (question: string, answer?: string) => void;
 }
 
-const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) => {
+const QAList = ({ viewMode, qaData, repositoryId, onAnswerUpdate, onChatStart }: QAListProps) => {
+  // Filter and transform data to match QAItem expected format
+  const transformedData = qaData
+    .filter(qa => qa.answer) // Only show items with answers
+    .map(qa => ({
+      id: qa.id,
+      question: qa.question,
+      answer: qa.answer!,
+      ai_response_style: qa.ai_response_style,
+      function_name: qa.function_name,
+      created_at: qa.created_at,
+      tags: qa.tags
+    }));
+
   return (
     <div className="lg:col-span-2 space-y-4">
       <div className="flex items-center justify-between">
@@ -32,11 +43,11 @@ const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) 
           {viewMode === 'dev' ? 'Developer' : 'Business'} Questions & Answers
         </h3>
         <Badge variant="outline">
-          {qaData.length} {qaData.length === 1 ? 'item' : 'items'}
+          {transformedData.length} {transformedData.length === 1 ? 'item' : 'items'}
         </Badge>
       </div>
 
-      {qaData.length === 0 ? (
+      {transformedData.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8 text-gray-500">
@@ -48,11 +59,12 @@ const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) 
         </Card>
       ) : (
         <div className="space-y-4">
-          {qaData.map((qa) => (
+          {transformedData.map((qa) => (
             <QAItem
               key={qa.id}
               qa={qa}
-              onAnswerUpdate={onAnswerUpdate}
+              repositoryId={repositoryId}
+              onUpdate={onAnswerUpdate}
               onChatStart={onChatStart}
             />
           ))}

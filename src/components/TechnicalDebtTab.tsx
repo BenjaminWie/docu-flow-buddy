@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, AlertTriangle, CheckCircle, Clock, Shield, Zap, Wrench, BarChart3 } from "lucide-react";
+import { Upload, AlertTriangle, CheckCircle, Clock, Shield, Zap, Wrench, BarChart3, FileX, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import DisallowedFilesTab from "./DisallowedFilesTab";
 
 interface TechnicalDebtTabProps {
   repositoryId: string;
@@ -217,10 +218,12 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
       </Card>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="disallowed">Disallowed Files</TabsTrigger>
           <TabsTrigger value="compliance">Compliance Rules</TabsTrigger>
           <TabsTrigger value="tools">Tools & Versions</TabsTrigger>
+          <TabsTrigger value="dependencies">Dependencies</TabsTrigger>
           <TabsTrigger value="history">Assessment History</TabsTrigger>
         </TabsList>
 
@@ -290,6 +293,10 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="disallowed">
+          <DisallowedFilesTab />
         </TabsContent>
 
         <TabsContent value="compliance">
@@ -365,6 +372,31 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
           </div>
         </TabsContent>
 
+        <TabsContent value="dependencies">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Dependency Analysis
+              </CardTitle>
+              <p className="text-gray-600">
+                Dependency documentation and analysis will be integrated here.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Dependency analysis coming soon.</p>
+                <p className="text-sm">Upload your dependency documents to get started.</p>
+                <Button variant="outline" className="mt-4">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Dependency Document
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="history">
           <div className="space-y-4">
             {assessments.map((assessment) => (
@@ -397,7 +429,7 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Maintainability</p>
-                      <p className={`text-lg font-bold ${getScoreColor(assessment.maintainability_score)}`}>
+                      <p className="text-lg font-bold ${getScoreColor(assessment.maintainability_score)}">
                         {assessment.maintainability_score}%
                       </p>
                     </div>
