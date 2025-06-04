@@ -281,6 +281,21 @@ export type Database = {
         }
         Relationships: []
       }
+      disallowed_files: {
+        Row: {
+          file_url: string
+          id: number
+        }
+        Insert: {
+          file_url: string
+          id?: never
+        }
+        Update: {
+          file_url?: string
+          id?: never
+        }
+        Relationships: []
+      }
       documentation_proposals: {
         Row: {
           ai_generated_content: string | null
