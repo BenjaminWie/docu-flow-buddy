@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, RefreshCw, User, Bot } from "lucide-react";
+import { MessageSquare, RefreshCw, User, Bot, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -16,12 +16,14 @@ interface QAItemProps {
     ai_response_style: 'business' | 'developer';
     function_name?: string;
     created_at: string;
+    tags?: string[];
   };
   repositoryId: string;
   onUpdate?: () => void;
+  onChatStart?: (question: string, answer?: string) => void;
 }
 
-const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
+const QAItem = ({ qa, repositoryId, onUpdate, onChatStart }: QAItemProps) => {
   const { toast } = useToast();
   const [isRegenerating, setIsRegenerating] = useState(false);
 
@@ -68,8 +70,14 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
     }
   };
 
+  const handleAddToChat = () => {
+    if (onChatStart) {
+      onChatStart(qa.question, qa.answer);
+    }
+  };
+
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
@@ -77,8 +85,8 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
               <User className="w-4 h-4 text-blue-600" />
             </div>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <MessageSquare className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-500">Question</span>
               {qa.function_name && (
@@ -86,8 +94,17 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
                   {qa.function_name}
                 </Badge>
               )}
+              {qa.tags && qa.tags.length > 0 && (
+                <div className="flex gap-1 flex-wrap">
+                  {qa.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-            <p className="text-gray-900 mb-4">{qa.question}</p>
+            <p className="text-gray-900 mb-4 break-words">{qa.question}</p>
           </div>
         </div>
 
@@ -97,7 +114,7 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
               <Bot className="w-4 h-4 text-green-600" />
             </div>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">AI Answer</span>
@@ -108,17 +125,31 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
                   {qa.ai_response_style === 'business' ? 'Business' : 'Developer'}
                 </Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={regenerateAnswer}
-                disabled={isRegenerating}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-              </Button>
+              <div className="flex gap-1">
+                {onChatStart && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAddToChat}
+                    className="text-gray-500 hover:text-gray-700"
+                    title="Add to chat"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={regenerateAnswer}
+                  disabled={isRegenerating}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Regenerate answer"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
-            <div className="max-w-none">
+            <div className="overflow-hidden break-words">
               <MarkdownRenderer content={qa.answer} />
             </div>
           </div>

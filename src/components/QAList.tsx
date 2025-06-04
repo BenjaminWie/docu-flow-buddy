@@ -11,16 +11,18 @@ interface QAData {
   ai_response_style: 'business' | 'developer';
   function_name?: string;
   created_at: string;
+  tags?: string[];
 }
 
 interface QAListProps {
   viewMode: 'dev' | 'business';
   qaData: QAData[];
+  repositoryId: string;
   onAnswerUpdate: () => void;
-  onChatStart: (question: string) => void;
+  onChatStart: (question: string, answer?: string) => void;
 }
 
-const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) => {
+const QAList = ({ viewMode, qaData, repositoryId, onAnswerUpdate, onChatStart }: QAListProps) => {
   // Filter and transform data to match QAItem expected format
   const transformedData = qaData
     .filter(qa => qa.answer) // Only show items with answers
@@ -30,7 +32,8 @@ const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) 
       answer: qa.answer!,
       ai_response_style: qa.ai_response_style,
       function_name: qa.function_name,
-      created_at: qa.created_at
+      created_at: qa.created_at,
+      tags: qa.tags
     }));
 
   return (
@@ -60,8 +63,9 @@ const QAList = ({ viewMode, qaData, onAnswerUpdate, onChatStart }: QAListProps) 
             <QAItem
               key={qa.id}
               qa={qa}
-              repositoryId="" // This will be passed from parent
+              repositoryId={repositoryId}
               onUpdate={onAnswerUpdate}
+              onChatStart={onChatStart}
             />
           ))}
         </div>

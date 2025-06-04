@@ -71,7 +71,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         answer: item.answer,
         ai_response_style: (item.ai_response_style as 'business' | 'developer') || 'developer',
         function_name: item.function_name,
-        created_at: item.created_at
+        created_at: item.created_at,
+        tags: item.tags || []
       }));
       setQaData(transformedData);
     }
@@ -161,7 +162,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         answer: exp.answer,
         ai_response_style: 'business' as const,
         function_name: 'Business Logic',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        tags: ['business', 'documentation']
       }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
@@ -169,7 +171,8 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         answer: doc.content,
         ai_response_style: 'developer' as const,
         function_name: 'Architecture',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        tags: ['architecture', 'documentation']
       }));
 
   const allQAData = [...filteredQA, ...convertedDocs];
@@ -191,6 +194,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
           <QAList
             viewMode={viewMode}
             qaData={allQAData}
+            repositoryId={repositoryId}
             onAnswerUpdate={fetchQAData}
             onChatStart={handleChatStart}
           />
