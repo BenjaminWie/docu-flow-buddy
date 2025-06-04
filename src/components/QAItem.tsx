@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare, RefreshCw, User, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface QAItemProps {
   qa: {
@@ -117,8 +118,8 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
                 <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
               </Button>
             </div>
-            <div className="prose prose-sm max-w-none">
-              <p className="text-gray-700 whitespace-pre-wrap">{qa.answer}</p>
+            <div className="max-w-none">
+              <MarkdownRenderer content={qa.answer} />
             </div>
           </div>
         </div>
