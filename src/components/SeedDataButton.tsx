@@ -1,13 +1,14 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Database, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { seedOpenRewriteData } from "@/utils/seedOpenRewriteData";
+
 const SeedDataButton = () => {
   const [isSeeding, setIsSeeding] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const handleSeedData = async () => {
     setIsSeeding(true);
     try {
@@ -27,6 +28,22 @@ const SeedDataButton = () => {
       setIsSeeding(false);
     }
   };
-  return;
+
+  return (
+    <Button 
+      onClick={handleSeedData} 
+      disabled={isSeeding}
+      variant="outline" 
+      size="sm"
+    >
+      {isSeeding ? (
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      ) : (
+        <Database className="w-4 h-4 mr-2" />
+      )}
+      {isSeeding ? 'Seeding...' : 'Seed Example Data'}
+    </Button>
+  );
 };
+
 export default SeedDataButton;

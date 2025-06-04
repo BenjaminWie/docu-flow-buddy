@@ -11,9 +11,13 @@ interface QAData {
   id: string;
   question: string;
   answer: string | null;
-  ai_response_style: 'business' | 'developer';
-  function_name?: string;
-  created_at: string;
+  question_type: string;
+  view_mode: string | null;
+  function_name: string;
+  tags?: string[];
+  is_approved?: boolean;
+  approved_by?: string;
+  approved_at?: string;
 }
 
 interface ArchitectureDoc {
@@ -64,17 +68,7 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
     if (error) {
       console.error('Error fetching Q&A data:', error);
     } else {
-      // Transform database data to match QAData interface
-      const transformedData: QAData[] = (data || []).map(item => ({
-        id: item.id,
-        question: item.question,
-        answer: item.answer,
-        ai_response_style: (item.ai_response_style as 'business' | 'developer') || 'developer',
-        function_name: item.function_name,
-        created_at: item.created_at,
-        tags: item.tags || []
-      }));
-      setQaData(transformedData);
+      setQaData(data || []);
     }
   };
 
@@ -145,11 +139,12 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
   const filteredQA = qaData.filter(qa => {
     const matchesSearch = qa.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          qa.answer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         qa.function_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                         qa.function_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         qa.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesMode = viewMode === 'business' ? 
-      qa.ai_response_style === 'business' :
-      qa.ai_response_style === 'developer';
+      (qa.view_mode === 'business' || qa.question_type === 'business') :
+      (qa.view_mode !== 'business' && qa.question_type !== 'business');
     
     return matchesSearch && matchesMode;
   });
@@ -160,19 +155,21 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
         id: `business-${exp.id}`,
         question: exp.question || exp.category,
         answer: exp.answer,
-        ai_response_style: 'business' as const,
+        question_type: 'business',
+        view_mode: 'business',
         function_name: 'Business Logic',
-        created_at: new Date().toISOString(),
-        tags: ['business', 'documentation']
+        tags: ['business', 'documentation'],
+        is_approved: true
       }))
     : architectureDocs.map(doc => ({
         id: `arch-${doc.id}`,
         question: doc.title,
         answer: doc.content,
-        ai_response_style: 'developer' as const,
+        question_type: 'architecture',
+        view_mode: 'dev',
         function_name: 'Architecture',
-        created_at: new Date().toISOString(),
-        tags: ['architecture', 'documentation']
+        tags: ['architecture', 'documentation'],
+        is_approved: true
       }));
 
   const allQAData = [...filteredQA, ...convertedDocs];
@@ -194,7 +191,6 @@ const ExplainCodeTab = ({ repositoryId, functionAnalyses }: ExplainCodeTabProps)
           <QAList
             viewMode={viewMode}
             qaData={allQAData}
-            repositoryId={repositoryId}
             onAnswerUpdate={fetchQAData}
             onChatStart={handleChatStart}
           />

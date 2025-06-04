@@ -1,17 +1,15 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, CheckCircle, TrendingUp, Users, Code, ChevronRight, Flame, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
 interface ComplexFunction {
   id: number;
   function_name: string;
   github_url: string;
   file_url: string;
-  rule_score: number;
+  combined_complexity_score: number;
   llm_business_description: string;
   llm_developer_description: string;
   llm_maintainability: number;
@@ -21,26 +19,25 @@ interface ComplexFunction {
   rule_function_length: number;
   rule_nesting_depth: number;
 }
-
 interface CriticalFunctionDashboardProps {
   onFunctionSelect: (func: ComplexFunction) => void;
 }
-
-const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboardProps) => {
+const CriticalFunctionDashboard = ({
+  onFunctionSelect
+}: CriticalFunctionDashboardProps) => {
   const [functions, setFunctions] = useState<ComplexFunction[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     fetchComplexFunctions();
   }, []);
-
   const fetchComplexFunctions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('function_complexity')
-        .select('*')
-        .order('rule_score', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('function_complexity').select('*').order('combined_complexity_score', {
+        ascending: false
+      });
       if (error) throw error;
       setFunctions(data || []);
     } catch (error) {
@@ -49,14 +46,12 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
       setLoading(false);
     }
   };
-
   const getPriorityLevel = (score: number) => {
-    if (score >= 1000) return 'critical';
-    if (score >= 600) return 'high';
-    if (score >= 300) return 'medium';
+    if (score >= 80) return 'critical';
+    if (score >= 60) return 'high';
+    if (score >= 40) return 'medium';
     return 'low';
   };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'critical':
@@ -69,7 +64,6 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
         return 'bg-green-100 text-green-800 border-green-300';
     }
   };
-
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'critical':
@@ -82,7 +76,6 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
         return <CheckCircle className="w-4 h-4" />;
     }
   };
-
   const getBusinessImpact = (func: ComplexFunction) => {
     const urgency = func.llm_refactoring_urgency || 0;
     const maintainability = func.llm_maintainability || 0;
@@ -90,7 +83,6 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
     if (urgency >= 6 || maintainability <= 4) return 'Medium Risk';
     return 'Manageable';
   };
-
   const getTechnicalDebt = (func: ComplexFunction) => {
     const cyclomatic = func.rule_cyclomatic_complexity || 0;
     const length = func.rule_function_length || 0;
@@ -101,63 +93,18 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
     if (debtScore >= 10) return 'Medium';
     return 'Low';
   };
-
   if (loading) {
-    return (
-      <div className="text-center py-8">
+    return <div className="text-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-gray-600">Loading critical functions...</p>
-      </div>
-    );
+      </div>;
   }
-
-  const criticalFunctions = functions.filter(f => getPriorityLevel(f.rule_score || 0) === 'critical');
-  const highPriorityFunctions = functions.filter(f => getPriorityLevel(f.rule_score || 0) === 'high');
-  const mediumPriorityFunctions = functions.filter(f => getPriorityLevel(f.rule_score || 0) === 'medium');
-
-  // Mock project overview numbers
-  const projectStats = {
-    totalLinesOfCode: 45672,
-    technicalDebtRatio: 23.4,
-    compliancePercentage: 76.8,
-    riskAssessment: 'Medium'
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Project Overview with Mock Numbers */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <TrendingUp className="w-5 h-5" />
-            Project Technical Health Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <div className="text-2xl font-bold text-blue-600">{projectStats.totalLinesOfCode.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Total Lines of Code</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <div className="text-2xl font-bold text-orange-600">{projectStats.technicalDebtRatio}%</div>
-              <div className="text-sm text-gray-600">Technical Debt Ratio</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <div className="text-2xl font-bold text-green-600">{projectStats.compliancePercentage}%</div>
-              <div className="text-sm text-gray-600">Compliance Score</div>
-            </div>
-            <div className="text-center p-4 bg-white rounded-lg border">
-              <div className="text-2xl font-bold text-yellow-600">{projectStats.riskAssessment}</div>
-              <div className="text-sm text-gray-600">Risk Assessment</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+  const criticalFunctions = functions.filter(f => getPriorityLevel(f.combined_complexity_score) === 'critical');
+  const highPriorityFunctions = functions.filter(f => getPriorityLevel(f.combined_complexity_score) === 'high');
+  const mediumPriorityFunctions = functions.filter(f => getPriorityLevel(f.combined_complexity_score) === 'medium');
+  return <div className="space-y-6">
       {/* Critical Functions Alert */}
-      {criticalFunctions.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
+      {criticalFunctions.length > 0 && <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-800">
               <Flame className="w-5 h-5" />
@@ -169,12 +116,7 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {criticalFunctions.slice(0, 3).map(func => (
-                <div 
-                  key={func.id} 
-                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200 cursor-pointer hover:bg-red-50"
-                  onClick={() => onFunctionSelect(func)}
-                >
+              {criticalFunctions.slice(0, 3).map(func => <div key={func.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200 cursor-pointer hover:bg-red-50" onClick={() => onFunctionSelect(func)}>
                   <div className="flex items-center gap-3">
                     <Flame className="w-5 h-5 text-red-600" />
                     <div>
@@ -186,16 +128,14 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className="bg-red-200 text-red-800">
-                      Score: {Math.round(func.rule_score || 0)}
+                      Score: {Math.round(func.combined_complexity_score)}
                     </Badge>
                     <ChevronRight className="w-4 h-4 text-red-400" />
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </CardContent>
-        </Card>
-      )}
+        </Card>}
 
       {/* Priority Matrix */}
       <div className="grid md:grid-cols-3 gap-4">
@@ -208,18 +148,12 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {highPriorityFunctions.slice(0, 5).map(func => (
-                <div 
-                  key={func.id} 
-                  className="p-2 bg-orange-50 rounded border cursor-pointer hover:bg-orange-100"
-                  onClick={() => onFunctionSelect(func)}
-                >
+              {highPriorityFunctions.slice(0, 5).map(func => <div key={func.id} className="p-2 bg-orange-50 rounded border cursor-pointer hover:bg-orange-100" onClick={() => onFunctionSelect(func)}>
                   <div className="font-medium text-sm">{func.function_name}</div>
                   <div className="text-xs text-orange-600">
-                    Rule Score: {Math.round(func.rule_score || 0)}
+                    Complexity: {Math.round(func.combined_complexity_score)}
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </CardContent>
         </Card>
@@ -233,18 +167,12 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {mediumPriorityFunctions.slice(0, 5).map(func => (
-                <div 
-                  key={func.id} 
-                  className="p-2 bg-yellow-50 rounded border cursor-pointer hover:bg-yellow-100"
-                  onClick={() => onFunctionSelect(func)}
-                >
+              {mediumPriorityFunctions.slice(0, 5).map(func => <div key={func.id} className="p-2 bg-yellow-50 rounded border cursor-pointer hover:bg-yellow-100" onClick={() => onFunctionSelect(func)}>
                   <div className="font-medium text-sm">{func.function_name}</div>
                   <div className="text-xs text-yellow-600">
-                    Rule Score: {Math.round(func.rule_score || 0)}
+                    Complexity: {Math.round(func.combined_complexity_score)}
                   </div>
-                </div>
-              ))}
+                </div>)}
             </div>
           </CardContent>
         </Card>
@@ -267,9 +195,9 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
                 <Badge className="bg-red-100 text-red-800">{criticalFunctions.length}</Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Avg Rule Score</span>
+                <span className="text-sm">Avg Complexity</span>
                 <Badge variant="outline">
-                  {Math.round(functions.reduce((acc, f) => acc + (f.rule_score || 0), 0) / functions.length || 0)}
+                  {Math.round(functions.reduce((acc, f) => acc + f.combined_complexity_score, 0) / functions.length || 0)}
                 </Badge>
               </div>
             </div>
@@ -280,18 +208,13 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
       {/* All Functions List */}
       <Card>
         <CardHeader>
-          <CardTitle>Functions Ranked by Rule Score</CardTitle>
+          <CardTitle>Functions sorted by Complexity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {functions.map(func => {
-              const priority = getPriorityLevel(func.rule_score || 0);
-              return (
-                <div 
-                  key={func.id} 
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                  onClick={() => onFunctionSelect(func)}
-                >
+            const priority = getPriorityLevel(func.combined_complexity_score);
+            return <div key={func.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => onFunctionSelect(func)}>
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded border ${getPriorityColor(priority)}`}>
                       {getPriorityIcon(priority)}
@@ -315,18 +238,15 @@ const CriticalFunctionDashboard = ({ onFunctionSelect }: CriticalFunctionDashboa
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className={getPriorityColor(priority)}>
-                      {Math.round(func.rule_score || 0)}
+                      {Math.round(func.combined_complexity_score)}
                     </Badge>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
-                </div>
-              );
-            })}
+                </div>;
+          })}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default CriticalFunctionDashboard;
