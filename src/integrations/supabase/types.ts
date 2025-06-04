@@ -370,6 +370,27 @@ export type Database = {
         }
         Relationships: []
       }
+      forbidden_license: {
+        Row: {
+          dependency: string
+          detected_at: string
+          id: string
+          license: string
+        }
+        Insert: {
+          dependency: string
+          detected_at?: string
+          id?: string
+          license: string
+        }
+        Update: {
+          dependency?: string
+          detected_at?: string
+          id?: string
+          license?: string
+        }
+        Relationships: []
+      }
       function_analyses: {
         Row: {
           complexity_level: string | null
@@ -591,14 +612,17 @@ export type Database = {
       matrix: {
         Row: {
           content: string | null
+          embedding: string | null
           id: string
         }
         Insert: {
           content?: string | null
+          embedding?: string | null
           id?: string
         }
         Update: {
           content?: string | null
+          embedding?: string | null
           id?: string
         }
         Relationships: []
@@ -822,6 +846,18 @@ export type Database = {
         Returns: unknown
       }
       match_documents: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+        }
+        Returns: {
+          content: string | null
+          embedding: string | null
+          id: string
+        }[]
+      }
+      match_documents_matrix: {
         Args: {
           query_embedding: string
           match_threshold: number

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, AlertTriangle, CheckCircle, Clock, Shield, Zap, Wrench, BarChart3, FileX, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,11 +44,19 @@ interface ToolRequirement {
   compliance_notes: string;
 }
 
+interface ForbiddenLicense {
+  id: string;
+  dependency: string;
+  license: string;
+  detected_at: string;
+}
+
 const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
   const { toast } = useToast();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [complianceRules, setComplianceRules] = useState<ComplianceRule[]>([]);
   const [toolRequirements, setToolRequirements] = useState<ToolRequirement[]>([]);
+  const [forbiddenLicenses, setForbiddenLicenses] = useState<ForbiddenLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [newToolName, setNewToolName] = useState('');
   const [newToolVersion, setNewToolVersion] = useState('');
@@ -79,9 +87,16 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
         .select('*')
         .eq('repository_id', repositoryId);
 
+      // Fetch forbidden licenses
+      const { data: licensesData } = await supabase
+        .from('forbidden_license')
+        .select('*')
+        .order('detected_at', { ascending: false });
+
       setAssessments(assessmentData || []);
       setComplianceRules(rulesData || []);
       setToolRequirements(toolsData || []);
+      setForbiddenLicenses(licensesData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -179,6 +194,19 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getLicenseSeverityColor = (license: string) => {
+    // Color code based on known problematic licenses
+    const highRiskLicenses = ['BUSL-1.1', 'SSPL-1.0', 'AGPL-3.0', 'GPL-3.0'];
+    const mediumRiskLicenses = ['GPL-2.0', 'LGPL-3.0', 'LGPL-2.1'];
+    
+    if (highRiskLicenses.includes(license)) {
+      return 'bg-red-100 text-red-800 border-red-200';
+    } else if (mediumRiskLicenses.includes(license)) {
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    }
+    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
   };
 
   if (loading) {
@@ -377,22 +405,63 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
-                Dependency Analysis
+                Forbidden License Dependencies
               </CardTitle>
               <p className="text-gray-600">
-                Dependency documentation and analysis will be integrated here.
+                Dependencies with licenses that may require legal review or violate your compliance requirements.
               </p>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Dependency analysis coming soon.</p>
-                <p className="text-sm">Upload your dependency documents to get started.</p>
-                <Button variant="outline" className="mt-4">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Dependency Document
-                </Button>
-              </div>
+              {forbiddenLicenses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
+                  <p className="font-medium">No forbidden licenses detected!</p>
+                  <p className="text-sm">All your dependencies appear to have compliant licenses.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <span className="text-red-800 font-medium">
+                      {forbiddenLicenses.length} forbidden license{forbiddenLicenses.length > 1 ? 's' : ''} detected
+                    </span>
+                  </div>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Dependency</TableHead>
+                        <TableHead>License</TableHead>
+                        <TableHead>Detected At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {forbiddenLicenses.map((license) => (
+                        <TableRow key={license.id}>
+                          <TableCell className="font-mono text-sm">
+                            {license.dependency}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getLicenseSeverityColor(license.license)}>
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              {license.license}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-gray-600">
+                            {new Date(license.detected_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -429,7 +498,7 @@ const TechnicalDebtTab = ({ repositoryId }: TechnicalDebtTabProps) => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Maintainability</p>
-                      <p className="text-lg font-bold ${getScoreColor(assessment.maintainability_score)}">
+                      <p className={`text-lg font-bold ${getScoreColor(assessment.maintainability_score)}`}>
                         {assessment.maintainability_score}%
                       </p>
                     </div>
