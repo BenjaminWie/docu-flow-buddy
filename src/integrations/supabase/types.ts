@@ -283,16 +283,22 @@ export type Database = {
       }
       disallowed_files: {
         Row: {
+          extension: string
           file_url: string
           id: number
+          name: string
         }
         Insert: {
+          extension: string
           file_url: string
           id?: never
+          name: string
         }
         Update: {
+          extension?: string
           file_url?: string
           id?: never
+          name?: string
         }
         Relationships: []
       }

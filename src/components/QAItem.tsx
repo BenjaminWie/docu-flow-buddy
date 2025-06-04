@@ -40,7 +40,7 @@ const QAItem = ({ qa, repositoryId, onUpdate }: QAItemProps) => {
 
       // Update the Q&A item with the new answer
       const { error: updateError } = await supabase
-        .from('repository_qa')
+        .from('function_qa')
         .update({
           answer: data.answer,
           ai_response_style: qa.ai_response_style
