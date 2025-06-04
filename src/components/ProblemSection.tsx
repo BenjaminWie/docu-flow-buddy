@@ -78,28 +78,7 @@ const ProblemSection = () => {
 
         {/* Impact */}
         <div className="max-w-4xl mx-auto mt-16 text-center">
-          <Card className="bg-gray-800/50 border-gray-600">
-            <CardContent className="p-8 my-[131px]">
-              <h4 className="text-2xl font-bold text-white mb-4">The Real Cost</h4>
-              <div className="grid md:grid-cols-3 gap-8">
-                <div>
-                  <div className="text-4xl font-bold text-red-400 mb-2">6-8</div>
-                  <div className="text-lg text-white mb-1">Weeks</div>
-                  <p className="text-gray-400 text-sm">New dev onboarding time</p>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-orange-400 mb-2">40%</div>
-                  <div className="text-lg text-white mb-1">Time</div>
-                  <p className="text-gray-400 text-sm">Wasted on context switching</p>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-yellow-400 mb-2">Daily</div>
-                  <div className="text-lg text-white mb-1">Questions</div>
-                  <p className="text-gray-400 text-sm">"How does this work?"</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
         </div>
       </div>
     </section>;
