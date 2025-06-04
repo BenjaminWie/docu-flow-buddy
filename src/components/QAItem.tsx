@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, Edit, X, Tag, Check, Trash2, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { MessageSquare, Edit, X, Tag, Check, Trash2, Save, CheckCircle, AlertCircle, RefreshCw, Users, Code, TrendingUp, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -21,6 +21,9 @@ interface QAItemProps {
     is_approved?: boolean;
     approved_by?: string;
     approved_at?: string;
+    ai_response_style?: string;
+    business_context?: string;
+    technical_context?: string;
   };
   onAnswerUpdate: () => void;
   onChatStart: (question: string, answer?: string) => void;
@@ -33,12 +36,14 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
   const [tags, setTags] = useState<string[]>(qa.tags || []);
   const [isEditingTags, setIsEditingTags] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const PREDEFINED_TAGS = [
     'architecture', 'security', 'performance', 'business-logic', 
     'database', 'api', 'testing', 'documentation', 'deployment',
     'java', 'spring', 'react', 'typescript', 'aws', 'docker',
-    'high-priority', 'medium-priority', 'low-priority', 'refactoring'
+    'high-priority', 'medium-priority', 'low-priority', 'refactoring',
+    'business-impact', 'technical-debt', 'roi-analysis', 'implementation'
   ];
 
   const handleSaveAnswer = async () => {
@@ -62,6 +67,79 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
         title: "Success",
         description: "Answer saved successfully",
       });
+    }
+  };
+
+  const regenerateAnswer = async (mode: 'business' | 'developer') => {
+    setIsRegenerating(true);
+    
+    try {
+      const functionName = mode === 'business' ? 'chat-with-ai-business' : 'chat-with-ai-developer';
+      
+      // Create a temporary conversation for regeneration
+      const { data: conversation, error: convError } = await supabase
+        .from('chat_conversations')
+        .insert({
+          repository_id: 'temp', // This would need to be passed as a prop
+          conversation_type: 'regeneration'
+        })
+        .select()
+        .single();
+
+      if (convError) throw convError;
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: {
+          message: qa.question,
+          conversationId: conversation.id,
+          repositoryId: 'temp' // This would need to be passed as a prop
+        }
+      });
+
+      if (error) throw error;
+
+      // Update the answer with new response and style
+      const updateData = {
+        answer: data.response,
+        ai_response_style: mode,
+        regeneration_source: qa.ai_response_style || 'original',
+        view_mode: mode === 'business' ? 'business' : 'dev'
+      };
+
+      if (mode === 'business') {
+        updateData.business_context = data.response;
+      } else {
+        updateData.technical_context = data.response;
+      }
+
+      const { error: updateError } = await supabase
+        .from('function_qa')
+        .update(updateData)
+        .eq('id', qa.id);
+
+      if (updateError) throw updateError;
+
+      // Clean up temporary conversation
+      await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('id', conversation.id);
+
+      onAnswerUpdate();
+      toast({
+        title: `Regenerated for ${mode === 'business' ? 'Business' : 'Developer'}`,
+        description: "Answer updated with new perspective",
+      });
+
+    } catch (error) {
+      console.error('Error regenerating answer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate answer",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -184,22 +262,63 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
     }
   };
 
+  const getResponseStyleBadge = () => {
+    if (qa.ai_response_style === 'business') {
+      return (
+        <Badge className="bg-green-100 text-green-700 border-green-300">
+          <Users className="w-3 h-3 mr-1" />
+          Business Focus
+        </Badge>
+      );
+    }
+    if (qa.ai_response_style === 'developer') {
+      return (
+        <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+          <Code className="w-3 h-3 mr-1" />
+          Technical Focus
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  const getEyeOpeningMetrics = () => {
+    if (qa.ai_response_style === 'business' && qa.answer) {
+      const hasROI = qa.answer.toLowerCase().includes('roi') || qa.answer.toLowerCase().includes('return on investment');
+      const hasTimeline = qa.answer.toLowerCase().includes('time') || qa.answer.toLowerCase().includes('month') || qa.answer.toLowerCase().includes('week');
+      const hasRisk = qa.answer.toLowerCase().includes('risk') || qa.answer.toLowerCase().includes('impact');
+      
+      return (
+        <div className="flex gap-2 text-xs">
+          {hasROI && <Badge variant="outline" className="text-green-600"><TrendingUp className="w-3 h-3 mr-1" />ROI Analysis</Badge>}
+          {hasTimeline && <Badge variant="outline" className="text-blue-600"><Clock className="w-3 h-3 mr-1" />Timeline Est.</Badge>}
+          {hasRisk && <Badge variant="outline" className="text-orange-600">Risk Assessment</Badge>}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge variant="outline">{qa.question_type}</Badge>
                 {qa.view_mode && qa.view_mode !== qa.question_type && (
                   <Badge variant="secondary">{qa.view_mode}</Badge>
                 )}
+                {getResponseStyleBadge()}
               </div>
+              
               <h4 className="font-semibold text-lg mb-2">{qa.question}</h4>
               
+              {getEyeOpeningMetrics()}
+
               {/* Tags Section */}
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="flex items-center gap-2 mb-2 flex-wrap mt-2">
                 {tags.map((tag) => (
                   <Badge key={tag} variant="outline" className="flex items-center gap-1">
                     {tag}
@@ -291,6 +410,28 @@ const QAItem = ({ qa, onAnswerUpdate, onChatStart }: QAItemProps) => {
                   )}
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => regenerateAnswer('business')}
+                    disabled={isRegenerating}
+                    className="text-green-600 hover:bg-green-50"
+                    title="Regenerate for business audience"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    <Users className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => regenerateAnswer('developer')}
+                    disabled={isRegenerating}
+                    className="text-blue-600 hover:bg-blue-50"
+                    title="Regenerate for developer audience"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    <Code className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

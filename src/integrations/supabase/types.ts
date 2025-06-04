@@ -328,6 +328,27 @@ export type Database = {
           },
         ]
       }
+      documents: {
+        Row: {
+          content: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          content?: string | null
+          embedding?: string | null
+          id: string
+          metadata?: Json | null
+        }
+        Update: {
+          content?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       function_analyses: {
         Row: {
           complexity_level: string | null
@@ -381,11 +402,97 @@ export type Database = {
           },
         ]
       }
+      function_complexity: {
+        Row: {
+          combined_complexity_score: number | null
+          end_line: number | null
+          file_url: string | null
+          function_name: string | null
+          github_url: string | null
+          id: number
+          language: string | null
+          llm_business_description: string | null
+          llm_cognitive_load: number | null
+          llm_developer_description: string | null
+          llm_documentation_quality: number | null
+          llm_explanation: string | null
+          llm_maintainability: number | null
+          llm_refactoring_urgency: number | null
+          llm_score: number | null
+          llm_semantic_complexity: number | null
+          llm_suggestions: Json | null
+          rule_cognitive_complexity: number | null
+          rule_cyclomatic_complexity: number | null
+          rule_documentation_score: number | null
+          rule_function_length: number | null
+          rule_nesting_depth: number | null
+          rule_parameter_count: number | null
+          rule_score: number | null
+          start_line: number | null
+        }
+        Insert: {
+          combined_complexity_score?: number | null
+          end_line?: number | null
+          file_url?: string | null
+          function_name?: string | null
+          github_url?: string | null
+          id?: number
+          language?: string | null
+          llm_business_description?: string | null
+          llm_cognitive_load?: number | null
+          llm_developer_description?: string | null
+          llm_documentation_quality?: number | null
+          llm_explanation?: string | null
+          llm_maintainability?: number | null
+          llm_refactoring_urgency?: number | null
+          llm_score?: number | null
+          llm_semantic_complexity?: number | null
+          llm_suggestions?: Json | null
+          rule_cognitive_complexity?: number | null
+          rule_cyclomatic_complexity?: number | null
+          rule_documentation_score?: number | null
+          rule_function_length?: number | null
+          rule_nesting_depth?: number | null
+          rule_parameter_count?: number | null
+          rule_score?: number | null
+          start_line?: number | null
+        }
+        Update: {
+          combined_complexity_score?: number | null
+          end_line?: number | null
+          file_url?: string | null
+          function_name?: string | null
+          github_url?: string | null
+          id?: number
+          language?: string | null
+          llm_business_description?: string | null
+          llm_cognitive_load?: number | null
+          llm_developer_description?: string | null
+          llm_documentation_quality?: number | null
+          llm_explanation?: string | null
+          llm_maintainability?: number | null
+          llm_refactoring_urgency?: number | null
+          llm_score?: number | null
+          llm_semantic_complexity?: number | null
+          llm_suggestions?: Json | null
+          rule_cognitive_complexity?: number | null
+          rule_cyclomatic_complexity?: number | null
+          rule_documentation_score?: number | null
+          rule_function_length?: number | null
+          rule_nesting_depth?: number | null
+          rule_parameter_count?: number | null
+          rule_score?: number | null
+          start_line?: number | null
+        }
+        Relationships: []
+      }
       function_qa: {
         Row: {
+          ai_response_style: string | null
           answer: string | null
           approved_at: string | null
           approved_by: string | null
+          business_context: string | null
           created_at: string
           function_id: string
           function_name: string
@@ -393,16 +500,20 @@ export type Database = {
           is_approved: boolean | null
           question: string
           question_type: string
+          regeneration_source: string | null
           repository_id: string
           source_chat_id: string | null
           tags: string[] | null
+          technical_context: string | null
           updated_at: string
           view_mode: string | null
         }
         Insert: {
+          ai_response_style?: string | null
           answer?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          business_context?: string | null
           created_at?: string
           function_id: string
           function_name: string
@@ -410,16 +521,20 @@ export type Database = {
           is_approved?: boolean | null
           question: string
           question_type: string
+          regeneration_source?: string | null
           repository_id: string
           source_chat_id?: string | null
           tags?: string[] | null
+          technical_context?: string | null
           updated_at?: string
           view_mode?: string | null
         }
         Update: {
+          ai_response_style?: string | null
           answer?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          business_context?: string | null
           created_at?: string
           function_id?: string
           function_name?: string
@@ -427,9 +542,11 @@ export type Database = {
           is_approved?: boolean | null
           question?: string
           question_type?: string
+          regeneration_source?: string | null
           repository_id?: string
           source_chat_id?: string | null
           tags?: string[] | null
+          technical_context?: string | null
           updated_at?: string
           view_mode?: string | null
         }
@@ -449,6 +566,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      matrix: {
+        Row: {
+          content: string | null
+          id: string
+        }
+        Insert: {
+          content?: string | null
+          id?: string
+        }
+        Update: {
+          content?: string | null
+          id?: string
+        }
+        Relationships: []
       }
       repositories: {
         Row: {
@@ -545,6 +677,24 @@ export type Database = {
           },
         ]
       }
+      tll: {
+        Row: {
+          content: string | null
+          embedding: string | null
+          id: string
+        }
+        Insert: {
+          content?: string | null
+          embedding?: string | null
+          id?: string
+        }
+        Update: {
+          content?: string | null
+          embedding?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       tool_requirements: {
         Row: {
           compliance_notes: string | null
@@ -594,7 +744,110 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: unknown
+      }
+      match_documents: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+        }
+        Returns: {
+          content: string | null
+          embedding: string | null
+          id: string
+        }[]
+      }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
