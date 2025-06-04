@@ -43,15 +43,15 @@ const TeamSection = () => {
           </p>
         </div>
 
-        {/* Team Photo */}
-        <div className="max-w-4xl mx-auto mb-16">
+        {/* Team Photo - Made bigger */}
+        <div className="max-w-5xl mx-auto mb-16">
           <Card className="overflow-hidden border-2 border-gray-200">
             <CardContent className="p-0">
               <div className="relative">
                 <img 
                   src="/lovable-uploads/33a156ed-ffb0-47fe-9f56-c64ed17f76ec.png" 
                   alt="Team at hackathon working together on laptops"
-                  className="w-full h-96 object-cover"
+                  className="w-full h-[500px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                 <div className="absolute bottom-6 left-6 text-white">
@@ -65,31 +65,31 @@ const TeamSection = () => {
           </Card>
         </div>
 
-        {/* Team Members Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* Team Members Grid - Made cards smaller */}
+        <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
           {teamMembers.map((member, index) => (
-            <Card key={index} className="hover:shadow-xl transition-all duration-300 border-gray-200">
-              <CardContent className="p-6 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">
+            <Card key={index} className="hover:shadow-lg transition-all duration-300 border-gray-200">
+              <CardContent className="p-4 text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
                     {member.name.charAt(0)}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   {member.name}
                 </h3>
-                <p className="text-blue-600 font-medium mb-3">
+                <p className="text-blue-600 font-medium text-sm mb-2">
                   {member.role}
                 </p>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                <p className="text-gray-600 text-xs leading-relaxed mb-3">
                   {member.description}
                 </p>
-                <div className="flex justify-center gap-3">
-                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                    <Github className="w-4 h-4" />
+                <div className="flex justify-center gap-2">
+                  <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                    <Github className="w-3 h-3" />
                   </button>
-                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                    <Linkedin className="w-4 h-4" />
+                  <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                    <Linkedin className="w-3 h-3" />
                   </button>
                 </div>
               </CardContent>
