@@ -1,19 +1,18 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Github, Sparkles } from "lucide-react";
 import { useRepositoryAnalysis } from "@/hooks/useRepositoryAnalysis";
 import { useNavigate } from "react-router-dom";
-
 const CTASection = () => {
   const navigate = useNavigate();
   const [githubUrl, setGithubUrl] = useState("https://github.com/openrewrite/rewrite");
-  const { analyzeRepository, isAnalyzing } = useRepositoryAnalysis();
-
+  const {
+    analyzeRepository,
+    isAnalyzing
+  } = useRepositoryAnalysis();
   const handleAnalyze = async () => {
     if (!githubUrl.trim()) return;
-    
     try {
       const repositoryId = await analyzeRepository(githubUrl);
       if (repositoryId) {
@@ -23,9 +22,7 @@ const CTASection = () => {
       console.error('Analysis failed:', error);
     }
   };
-
-  return (
-    <section className="py-20 bg-gradient-to-b from-blue-900 to-gray-900 min-h-screen flex items-center">
+  return <section className="py-20 bg-gradient-to-b from-blue-900 to-gray-900 min-h-screen flex items-center">
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-4 py-2 mb-8">
@@ -43,37 +40,7 @@ const CTASection = () => {
 
           {/* CTA Form */}
           <div className="max-w-4xl mx-auto mb-12">
-            <div className="flex flex-col lg:flex-row gap-4 p-8 bg-white/5 backdrop-blur-md rounded-2xl border border-white/20">
-              <div className="flex-1 relative">
-                <Github className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
-                <Input
-                  type="url"
-                  placeholder="https://github.com/your-org/your-repo"
-                  value={githubUrl}
-                  onChange={(e) => setGithubUrl(e.target.value)}
-                  className="pl-12 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-16 text-xl"
-                  disabled={isAnalyzing}
-                />
-              </div>
-              <Button 
-                size="lg" 
-                onClick={handleAnalyze}
-                disabled={!githubUrl.trim() || isAnalyzing}
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-12 py-6 h-16 text-xl font-semibold group transition-all duration-300 transform hover:scale-105"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                    Analyzing Repository...
-                  </>
-                ) : (
-                  <>
-                    Start Understanding
-                    <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </Button>
-            </div>
+            
           </div>
 
           {/* What Happens Next */}
@@ -98,18 +65,12 @@ const CTASection = () => {
           {/* Alternative Actions */}
           <div className="mt-12 pt-8 border-t border-gray-700">
             <p className="text-gray-400 mb-4">Or explore existing analyses</p>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/repositories')}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
+            <Button variant="outline" onClick={() => navigate('/repositories')} className="bg-white/10 border-white/20 text-white hover:bg-white/20">
               View All Repositories
             </Button>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default CTASection;
