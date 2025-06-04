@@ -1,10 +1,7 @@
-
 import { Clock, Users, AlertTriangle, Code } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
 const ProblemSection = () => {
-  return (
-    <section className="py-20 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen flex items-center">
+  return <section className="py-20 bg-gradient-to-b from-gray-900 to-gray-800 min-h-screen flex items-center">
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -82,7 +79,7 @@ const ProblemSection = () => {
         {/* Impact */}
         <div className="max-w-4xl mx-auto mt-16 text-center">
           <Card className="bg-gray-800/50 border-gray-600">
-            <CardContent className="p-8">
+            <CardContent className="p-8 my-[131px]">
               <h4 className="text-2xl font-bold text-white mb-4">The Real Cost</h4>
               <div className="grid md:grid-cols-3 gap-8">
                 <div>
@@ -105,8 +102,6 @@ const ProblemSection = () => {
           </Card>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default ProblemSection;

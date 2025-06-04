@@ -45,21 +45,7 @@ const HeroSection = () => {
 
           {/* Demo CTA */}
           <div className="max-w-4xl mx-auto mb-16">
-            <div className="flex flex-col lg:flex-row gap-4 p-6 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-              <div className="flex-1 relative">
-                <Github className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
-                <Input type="url" placeholder="Try with OpenRewrite repository" value={githubUrl} onChange={e => setGithubUrl(e.target.value)} className="pl-12 bg-white/90 border-0 text-gray-900 placeholder-gray-500 h-16 text-xl" disabled={isAnalyzing} />
-              </div>
-              <Button size="lg" onClick={handleAnalyze} disabled={!githubUrl.trim() || isAnalyzing} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white px-10 py-6 h-16 text-xl font-semibold group transition-all duration-300 transform hover:scale-105">
-                {isAnalyzing ? <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-                    Analyzing...
-                  </> : <>
-                    Try Docu Buddy
-                    <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                  </>}
-              </Button>
-            </div>
+            
           </div>
 
           {/* Core Value Props */}
